@@ -2,7 +2,7 @@
 // Date: 07 November 2014
 
 // CONSTANTS
-var CELL_SIZE = 30;
+var CELL_SIZE = 25;
 var BORDER_SIZE = 5;
 
 
@@ -90,8 +90,33 @@ function drawCanvas()
 	drawField();
 }
 
+function mouseClickHandler(e)
+{
+	if (!e.which && e.button) {
+		if (e.button & 1) e.which = 1      // Left
+		else if (e.button & 4) e.which = 2 // Middle
+		else if (e.button & 2) e.which = 3 // Right
+	}
+
+	var X = e.pageX - this.offsetLeft 
+	var Y = e.pageY - this.offsetTop
+
+	if(X < field.x || X > (field.x + field.width) || Y < field.y || Y > (field.y + field.height))
+	{
+		return;
+	}
+
+	alert("X = " + X + ", Y = " + Y);
+}
+
+function registerListeners()
+{
+	canvas.onclick = mouseClickHandler;
+}
+
 function init() {
 	initialiseCanvas();
 	initialiseField();
+	registerListeners();
 	drawCanvas();
 }
