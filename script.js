@@ -3,11 +3,12 @@
 
 // CONSTANTS
 var CELL_SIZE = 30;
+var BORDER_SIZE = 5;
 
 
 // VARIABLES
-
-var header = new Box(0, 0, 200, 150);
+var header = new Box(0, 0, 0, 150);
+var field = new Box(0, 15)
 
 var gameGrid;
 
@@ -33,10 +34,7 @@ function Box(x, y, width, height) {
 }
 
 function drawField() {
-	ctx.fillStyle = "#000000";
-	ctx.fillRect(0,0,canvas.width, canvas.height);
-
-	ctx.translate(10, 20);
+	ctx.translate(field.x, field.y);
 
 	for(var i=0;i<gameGrid.length;i++) {
 		for(var j=0;j<gameGrid[i].length;j++) {
@@ -45,6 +43,15 @@ function drawField() {
 		}
 	}
 
+	ctx.setTransform(1, 0, 0, 1, 0, 0);
+}
+
+function drawHeader() {
+	ctx.translate(header.x, header.y);
+
+	ctx.fillStyle = "#FF0000";
+	ctx.fillRect(0, 0, header.width, header.height);
+	
 	ctx.setTransform(1, 0, 0, 1, 0, 0);
 }
 
@@ -57,13 +64,34 @@ function getRandomColor() {
     return color;
 }
 
-function init() {
-	canvas.width = difficulty.x * CELL_SIZE;
-	canvas.height = (difficulty.y * CELL_SIZE);// + headerHeight;
+function initialiseCanvas() {
+	var width = difficulty.x * CELL_SIZE;
+	header = new Box(BORDER_SIZE, BORDER_SIZE, width, 150);
+	field = new Box(BORDER_SIZE, 150+(2*BORDER_SIZE), difficulty.x * CELL_SIZE, difficulty.y * CELL_SIZE);
 
+	canvas.width = (2 * BORDER_SIZE) + field.width;
+	canvas.height = field.y + field.height + BORDER_SIZE;
+}
+
+function initialiseField() {
 	gameGrid = new Array(difficulty.x);
 	// Create empty array for grid
 	for(var i = 0; i < gameGrid.length; i++) {
 		gameGrid[i] = new Array(difficulty.y);
 	}
+}
+
+function drawCanvas()
+{
+	ctx.fillStyle = "#000000";
+	ctx.fillRect(0,0,canvas.width, canvas.height);
+
+	drawHeader();
+	drawField();
+}
+
+function init() {
+	initialiseCanvas();
+	initialiseField();
+	drawCanvas();
 }
