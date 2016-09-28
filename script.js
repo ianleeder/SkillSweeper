@@ -3,6 +3,12 @@
 
 // CONSTANTS
 var CELL_SIZE = 25;
+var CELL_BEZEL = 4;
+var CELL_BEZEL_LIGHT_COLOUR = "#FCFCFC";
+var CELL_COLOUR_UNREVEALED = "#B4B4B4";
+var CELL_COLOUR_REVEALED = "#B4B4B4";
+var CELL_BEZEL_DARK_COLOUR = "#696969";
+
 var BORDER_SIZE = 5;
 var FIELD_FONT = "20px Georgia";
 
@@ -22,7 +28,7 @@ Box.prototype.SayHello = function() {
 
 // Create a gridbox constructor
 function GridBox(x, y) {
-	Box.call(this, x*CELL_SIZE, y*CELL_SIZE, CELL_SIZE, CELL_SIZE);
+	Box.call(this, field.xPos + x*CELL_SIZE, field.yPos + y*CELL_SIZE, CELL_SIZE, CELL_SIZE);
 	this.xIndex = x;
 	this.yIndex = y;
 
@@ -55,8 +61,42 @@ GridBox.prototype.countAdjacentMines = function() {
 }
 
 GridBox.prototype.draw = function() {
-	ctx.fillRect(this.xPos, this.yPos, this.width, this.height);
 
+	if(this.xIndex == 0 && this.yIndex == 0)
+		console.log("first square");
+
+	ctx.translate(this.xPos, this.yPos);
+	if(!this.revealed)
+	{
+		// Fill square to begin with
+		ctx.fillStyle = CELL_COLOUR_UNREVEALED;
+		ctx.fillRect(0, 0, this.width, this.height);
+
+		// draw light bezel on top-left of cell
+		ctx.fillStyle = CELL_BEZEL_LIGHT_COLOUR;
+		ctx.beginPath();
+		ctx.moveTo(0, this.height); // bottom-left
+		ctx.lineTo(CELL_BEZEL, this.height - CELL_BEZEL); // inset bottom-eft
+		ctx.lineTo(CELL_BEZEL, CELL_BEZEL); // inset top-left
+		ctx.lineTo(this.width - CELL_BEZEL, CELL_BEZEL); // inset top-right
+		ctx.lineTo(this.width, 0); // top-right
+		ctx.lineTo(0, 0); // top-left
+		ctx.closePath();
+		ctx.fill();
+
+		// draw dark bezel on bottom-right of cell
+		ctx.fillStyle = CELL_BEZEL_DARK_COLOUR;
+		ctx.beginPath();
+		ctx.moveTo(0, this.height); // bottom-left
+		ctx.lineTo(CELL_BEZEL, this.height - CELL_BEZEL); // inset bottom-eft
+		ctx.lineTo(this.width - CELL_BEZEL, this.height - CELL_BEZEL); // inset bottom-right
+		ctx.lineTo(this.width - CELL_BEZEL, CELL_BEZEL); // inset top-right
+		ctx.lineTo(this.width, 0); // top-right
+		ctx.lineTo(this.width, this.height); // bottom-right
+		ctx.closePath();
+		ctx.fill();
+	}
+	
 	ctx.fillStyle = "#000000";
 	ctx.font = FIELD_FONT;
 	if(this.isMine) {
@@ -64,6 +104,8 @@ GridBox.prototype.draw = function() {
 	} else {
 		ctx.fillText(this.number, this.xPos + 5, this.yPos + this.height - 5);
 	}
+
+	ctx.setTransform(1, 0, 0, 1, 0, 0);
 }
 
 // VARIABLES
@@ -87,12 +129,8 @@ init();
 drawField();
 
 function drawField() {
-	ctx.translate(field.xPos, field.yPos);
-
 	for(var i=0;i<gameGrid.length;i++) {
 		for(var j=0;j<gameGrid[i].length;j++) {
-			var gb = gameGrid[i][j];
-			ctx.fillStyle = getRandomColor();
 			gameGrid[i][j].draw();
 		}
 	}
