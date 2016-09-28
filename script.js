@@ -1,10 +1,48 @@
 // Author: Ian Leeder
 // Date: 07 November 2014
 
+// global namespace
+var SkillSweeper = SkillSweeper || {};
+
+
 // CONSTANTS
 var CELL_SIZE = 25;
 var BORDER_SIZE = 5;
 
+
+// Define a base level box
+var Box = function(xPos, yPos, width, height) {
+	this.xPos = xPos;
+	this.yPos = yPos;
+	this.width = width;
+	this.height = height;
+}
+
+// Create a function for Box
+Box.prototype.SayHello = function() {
+	console.log("Width = " + this.width);
+}
+
+// Create a gridbox constructor
+function GridBox(x, y) {
+	Box.call(this, x*CELL_SIZE, y*CELL_SIZE, CELL_SIZE, CELL_SIZE);
+	this.xIndex = x;
+	this.yIndex = y;
+}
+
+// Make GridBox extend Box
+GridBox.prototype = Object.create(Box.prototype);
+
+// Set the constructor for the GridBox object
+GridBox.prototype.constructor = GridBox;
+
+GridBox.prototype.SayHello = function() {
+	console.log("Height = " + this.height);
+}
+
+GridBox.prototype.draw = function() {
+	ctx.fillRect(this.xPos, this.yPos, this.width, this.height);
+}
 
 // VARIABLES
 var header = new Box(0, 0, 0, 150);
@@ -26,20 +64,14 @@ var ctx = canvas.getContext('2d');
 init();
 drawField();
 
-function Box(x, y, width, height) {
-	this.x = x;
-	this.y = y;
-	this.width = width;
-	this.height = height;
-}
-
 function drawField() {
-	ctx.translate(field.x, field.y);
+	ctx.translate(field.xPos, field.yPos);
 
 	for(var i=0;i<gameGrid.length;i++) {
 		for(var j=0;j<gameGrid[i].length;j++) {
+			var gb = gameGrid[i][j];
 			ctx.fillStyle = getRandomColor();
-			ctx.fillRect(i*CELL_SIZE, j*CELL_SIZE, CELL_SIZE, CELL_SIZE);
+			gameGrid[i][j].draw();
 		}
 	}
 
@@ -47,7 +79,7 @@ function drawField() {
 }
 
 function drawHeader() {
-	ctx.translate(header.x, header.y);
+	ctx.translate(header.xPos, header.yPos);
 
 	ctx.fillStyle = "#FF0000";
 	ctx.fillRect(0, 0, header.width, header.height);
@@ -66,11 +98,11 @@ function getRandomColor() {
 
 function initialiseCanvas() {
 	var width = difficulty.x * CELL_SIZE;
-	header = new Box(BORDER_SIZE, BORDER_SIZE, width, 150);
-	field = new Box(BORDER_SIZE, 150+(2*BORDER_SIZE), difficulty.x * CELL_SIZE, difficulty.y * CELL_SIZE);
+	header = new Box(BORDER_SIZE, BORDER_SIZE, width, 50);
+	field = new Box(BORDER_SIZE, header.height+(2*BORDER_SIZE), difficulty.x * CELL_SIZE, difficulty.y * CELL_SIZE);
 
 	canvas.width = (2 * BORDER_SIZE) + field.width;
-	canvas.height = field.y + field.height + BORDER_SIZE;
+	canvas.height = field.yPos + field.height + BORDER_SIZE;
 }
 
 function initialiseField() {
@@ -78,6 +110,8 @@ function initialiseField() {
 	// Create empty array for grid
 	for(var i = 0; i < gameGrid.length; i++) {
 		gameGrid[i] = new Array(difficulty.y);
+		for(var j=0; j<gameGrid[i].length; j++)
+			gameGrid[i][j] = new GridBox(i,j);
 	}
 }
 
@@ -101,7 +135,7 @@ function mouseClickHandler(e)
 	var X = e.pageX - this.offsetLeft 
 	var Y = e.pageY - this.offsetTop
 
-	if(X < field.x || X > (field.x + field.width) || Y < field.y || Y > (field.y + field.height))
+	if(X < field.xPos || X > (field.xPos + field.width) || Y < field.yPos || Y > (field.yPos + field.height))
 	{
 		return;
 	}
