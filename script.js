@@ -8,6 +8,7 @@ var SkillSweeper = SkillSweeper || {};
 // CONSTANTS
 var CELL_SIZE = 25;
 var BORDER_SIZE = 5;
+var FIELD_FONT = "20px Georgia";
 
 
 // Define a base level box
@@ -28,6 +29,10 @@ function GridBox(x, y) {
 	Box.call(this, x*CELL_SIZE, y*CELL_SIZE, CELL_SIZE, CELL_SIZE);
 	this.xIndex = x;
 	this.yIndex = y;
+
+	this.number = 0;
+	this.revealed = false;
+	this.isMine = false;
 }
 
 // Make GridBox extend Box
@@ -40,8 +45,26 @@ GridBox.prototype.SayHello = function() {
 	console.log("Height = " + this.height);
 }
 
+GridBox.prototype.countAdjacentMines = function() {
+	if(this.isMine)
+		return;
+
+	for(var i = Math.max(this.xIndex-1, 0); i<Math.min(this.xIndex+2,difficulty.x); i++)
+		for(var j = Math.max(this.yIndex-1, 0); j<Math.min(this.yIndex+2,difficulty.y); j++)
+			if(gameGrid[i][j].isMine)
+				this.number++;
+}
+
 GridBox.prototype.draw = function() {
 	ctx.fillRect(this.xPos, this.yPos, this.width, this.height);
+
+	ctx.fillStyle = "#000000";
+	ctx.font = FIELD_FONT;
+	if(this.isMine) {
+		ctx.fillText("X", this.xPos + 5, this.yPos + this.height - 5);
+	} else {
+		ctx.fillText(this.number, this.xPos + 5, this.yPos + this.height - 5);
+	}
 }
 
 // VARIABLES
@@ -54,7 +77,7 @@ var beginnerDifficulty = {x:8, y:8, mines:10};
 var intermediateDifficulty = {x:16, y:16, mines:40};
 var expertDifficulty = {x:24, y:24, mines:99};
 
-var difficulty = expertDifficulty;
+var difficulty = beginnerDifficulty;
 
 
 // Get the canvas context
@@ -113,6 +136,28 @@ function initialiseField() {
 		for(var j=0; j<gameGrid[i].length; j++)
 			gameGrid[i][j] = new GridBox(i,j);
 	}
+
+	// Place mines
+	for(var m=0; m<difficulty.mines; m++)
+	{
+		var placed = false;
+		// Loop until we have placed a mine
+		do {
+			var x = Math.floor(Math.random() * difficulty.x);
+			var y = Math.floor(Math.random() * difficulty.y);
+
+			if(!gameGrid[x][y].isMine) {
+				gameGrid[x][y].isMine = true;
+				placed = true;
+			}
+		}
+		while (!placed)
+	}
+
+	// Count mines
+	for(var i = 0; i < gameGrid.length; i++)
+		for(var j=0; j<gameGrid[i].length; j++)
+			gameGrid[i][j].countAdjacentMines();
 }
 
 function drawCanvas()
