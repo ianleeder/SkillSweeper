@@ -1,9 +1,5 @@
 // Author: Ian Leeder
-// Date: 07 November 2014
-
-// global namespace
-var SkillSweeper = SkillSweeper || {};
-
+// Date: 25 September 2016
 
 // CONSTANTS
 var CELL_SIZE = 25;
@@ -49,6 +45,9 @@ GridBox.prototype.countAdjacentMines = function() {
 	if(this.isMine)
 		return;
 
+	// In the general case we want to look from one left to one right,
+	// and from one above to one below.
+	// However the easiest way to do bounds checks it to use min/max cleverly.
 	for(var i = Math.max(this.xIndex-1, 0); i<Math.min(this.xIndex+2,difficulty.x); i++)
 		for(var j = Math.max(this.yIndex-1, 0); j<Math.min(this.yIndex+2,difficulty.y); j++)
 			if(gameGrid[i][j].isMine)
