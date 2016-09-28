@@ -35,6 +35,7 @@ function GridBox(x, y) {
 	this.number = 0;
 	this.revealed = false;
 	this.isMine = false;
+	this.isFlagged = false;
 }
 
 // Make GridBox extend Box
@@ -60,6 +61,36 @@ GridBox.prototype.countAdjacentMines = function() {
 				this.number++;
 }
 
+GridBox.prototype.drawCell = function() {
+	// Fill square to begin with
+	ctx.fillStyle = CELL_COLOUR_UNREVEALED;
+	ctx.fillRect(0, 0, this.width, this.height);
+
+	// draw light bezel on top-left of cell
+	ctx.fillStyle = CELL_BEZEL_LIGHT_COLOUR;
+	ctx.beginPath();
+	ctx.moveTo(0, this.height); // bottom-left
+	ctx.lineTo(CELL_BEZEL, this.height - CELL_BEZEL); // inset bottom-eft
+	ctx.lineTo(CELL_BEZEL, CELL_BEZEL); // inset top-left
+	ctx.lineTo(this.width - CELL_BEZEL, CELL_BEZEL); // inset top-right
+	ctx.lineTo(this.width, 0); // top-right
+	ctx.lineTo(0, 0); // top-left
+	ctx.closePath();
+	ctx.fill();
+
+	// draw dark bezel on bottom-right of cell
+	ctx.fillStyle = CELL_BEZEL_DARK_COLOUR;
+	ctx.beginPath();
+	ctx.moveTo(0, this.height); // bottom-left
+	ctx.lineTo(CELL_BEZEL, this.height - CELL_BEZEL); // inset bottom-eft
+	ctx.lineTo(this.width - CELL_BEZEL, this.height - CELL_BEZEL); // inset bottom-right
+	ctx.lineTo(this.width - CELL_BEZEL, CELL_BEZEL); // inset top-right
+	ctx.lineTo(this.width, 0); // top-right
+	ctx.lineTo(this.width, this.height); // bottom-right
+	ctx.closePath();
+	ctx.fill();
+}
+
 GridBox.prototype.draw = function() {
 
 	if(this.xIndex == 0 && this.yIndex == 0)
@@ -68,41 +99,15 @@ GridBox.prototype.draw = function() {
 	ctx.translate(this.xPos, this.yPos);
 	if(!this.revealed)
 	{
-		// Fill square to begin with
-		ctx.fillStyle = CELL_COLOUR_UNREVEALED;
-		ctx.fillRect(0, 0, this.width, this.height);
-
-		// draw light bezel on top-left of cell
-		ctx.fillStyle = CELL_BEZEL_LIGHT_COLOUR;
-		ctx.beginPath();
-		ctx.moveTo(0, this.height); // bottom-left
-		ctx.lineTo(CELL_BEZEL, this.height - CELL_BEZEL); // inset bottom-eft
-		ctx.lineTo(CELL_BEZEL, CELL_BEZEL); // inset top-left
-		ctx.lineTo(this.width - CELL_BEZEL, CELL_BEZEL); // inset top-right
-		ctx.lineTo(this.width, 0); // top-right
-		ctx.lineTo(0, 0); // top-left
-		ctx.closePath();
-		ctx.fill();
-
-		// draw dark bezel on bottom-right of cell
-		ctx.fillStyle = CELL_BEZEL_DARK_COLOUR;
-		ctx.beginPath();
-		ctx.moveTo(0, this.height); // bottom-left
-		ctx.lineTo(CELL_BEZEL, this.height - CELL_BEZEL); // inset bottom-eft
-		ctx.lineTo(this.width - CELL_BEZEL, this.height - CELL_BEZEL); // inset bottom-right
-		ctx.lineTo(this.width - CELL_BEZEL, CELL_BEZEL); // inset top-right
-		ctx.lineTo(this.width, 0); // top-right
-		ctx.lineTo(this.width, this.height); // bottom-right
-		ctx.closePath();
-		ctx.fill();
+		this.drawCell();
 	}
 	
 	ctx.fillStyle = "#000000";
 	ctx.font = FIELD_FONT;
 	if(this.isMine) {
-		ctx.fillText("X", this.xPos + 5, this.yPos + this.height - 5);
+		ctx.fillText("X", 5, this.height - 5);
 	} else {
-		ctx.fillText(this.number, this.xPos + 5, this.yPos + this.height - 5);
+		ctx.fillText(this.number, 5, this.height - 5);
 	}
 
 	ctx.setTransform(1, 0, 0, 1, 0, 0);
