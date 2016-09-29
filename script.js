@@ -162,10 +162,16 @@ GridBox.prototype.draw = function() {
 		ctx.stroke();
 
 		if (this.isMine) {
+			ctx.fillStyle = "#FF0000";
+			ctx.strokeStyle = 'black';
+
+			ctx.beginPath();
+			ctx.rect(0, 0, this.width, this.height);
+			ctx.fill();
+			ctx.lineWidth = 1;
+			ctx.stroke();
 			this.drawMine();
-		} else if(this.number === 0) {
-			// deal with cascade reveal
-		} else {
+		} else if(this.number > 0) {
 			ctx.fillStyle = NUMBER_COLOURS[this.number];
 			ctx.fillText(this.number, 7, this.height - 7);
 		}
@@ -181,13 +187,18 @@ GridBox.prototype.draw = function() {
 }
 
 GridBox.prototype.reveal = function() {
-	// Game over man
-	if(this.isMine)
+	// Do nothing
+	if(this.revealed || this.isFlagged)
 		return;
 
-	// Do nothing
-	if(this.revealed)
+	// Game over man
+	if(this.isMine)
+	{
+		this.revealed = true;
+		this.draw();
+		// end game
 		return;
+	}
 
 	// Just reveal this cell and be done with it
 	if(this.number != 0) {
