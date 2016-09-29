@@ -10,8 +10,19 @@ var CELL_COLOUR_REVEALED = "#B4B4B4";
 var CELL_BEZEL_DARK_COLOUR = "#696969";
 
 var BORDER_SIZE = 5;
-var FIELD_FONT = "20px Georgia";
+var FIELD_FONT = "18px Courier";
 
+var NUMBER_COLOURS = [
+	"#FF7701", // Should never hit this, number 0
+	"#0C24FA", // 1 Blue
+	"#107E12", // 2 Green
+	"#FB0D1B", // 3 Red
+	"#030C7E", // 4 Dark blue
+	"#7F040A", // 5 Maroon
+	"#118080", // 6 Teal
+	"#000000", // 7 Black
+	"#808080"  // 8 Grey
+];
 
 // Define a base level box
 var Box = function(xPos, yPos, width, height) {
@@ -91,23 +102,53 @@ GridBox.prototype.drawCell = function() {
 	ctx.fill();
 }
 
+GridBox.prototype.drawMine = function() {
+	var centerX = this.width / 2;
+	var centerY = this.height / 2;
+	var radius = 5;
+
+	ctx.beginPath();
+	ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI, false);
+	ctx.fillStyle = "#000000";
+	ctx.fill();
+
+	ctx.beginPath();
+	ctx.moveTo(centerX - radius - 2, centerY);
+	ctx.lineTo(centerX + radius + 2, centerY);
+	ctx.stroke();
+
+	ctx.beginPath();
+	ctx.moveTo(centerX, centerY - radius - 2);
+	ctx.lineTo(centerX, centerY + radius + 2);
+	ctx.stroke();
+
+	centerX = 3 * this.width / 7;
+	centerY = 3 * this.height / 7;
+	radius = 2;
+	ctx.beginPath();
+	ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI, false);
+	ctx.fillStyle = CELL_COLOUR_REVEALED;
+	ctx.fill();
+}
+
 GridBox.prototype.draw = function() {
-
-	if(this.xIndex == 0 && this.yIndex == 0)
-		console.log("first square");
-
 	ctx.translate(this.xPos, this.yPos);
 	if(!this.revealed)
 	{
 		this.drawCell();
 	}
 	
-	ctx.fillStyle = "#000000";
+	
 	ctx.font = FIELD_FONT;
 	if(this.isMine) {
+		this.drawMine();
+		/*
+		ctx.fillStyle = "#000000";
 		ctx.fillText("X", 5, this.height - 5);
+		*/
 	} else {
-		ctx.fillText(this.number, 5, this.height - 5);
+		ctx.fillStyle = NUMBER_COLOURS[this.number];
+		ctx.fillText(this.number, 7, this.height - 7);
 	}
 
 	ctx.setTransform(1, 0, 0, 1, 0, 0);
@@ -123,7 +164,7 @@ var beginnerDifficulty = {x:8, y:8, mines:10};
 var intermediateDifficulty = {x:16, y:16, mines:40};
 var expertDifficulty = {x:24, y:24, mines:99};
 
-var difficulty = beginnerDifficulty;
+var difficulty = expertDifficulty;
 
 
 // Get the canvas context
@@ -134,13 +175,9 @@ init();
 drawField();
 
 function drawField() {
-	for(var i=0;i<gameGrid.length;i++) {
-		for(var j=0;j<gameGrid[i].length;j++) {
+	for(var i=0;i<gameGrid.length;i++)
+		for(var j=0;j<gameGrid[i].length;j++)
 			gameGrid[i][j].draw();
-		}
-	}
-
-	ctx.setTransform(1, 0, 0, 1, 0, 0);
 }
 
 function drawHeader() {
@@ -150,15 +187,6 @@ function drawHeader() {
 	ctx.fillRect(0, 0, header.width, header.height);
 	
 	ctx.setTransform(1, 0, 0, 1, 0, 0);
-}
-
-function getRandomColor() {
-    var letters = '0123456789ABCDEF';
-    var color = '#';
-    for (var i = 0; i < 6; i++ ) {
-        color += letters[Math.floor(Math.random() * 16)];
-    }
-    return color;
 }
 
 function initialiseCanvas() {
