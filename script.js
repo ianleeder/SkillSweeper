@@ -131,6 +131,31 @@ GridBox.prototype.drawMine = function() {
 	ctx.fill();
 }
 
+GridBox.prototype.drawFlag = function () {
+	ctx.fillStyle = "#000000";
+	ctx.beginPath();
+	ctx.moveTo(8, this.height - 6);
+	ctx.lineTo(8, this.height - 8);
+	ctx.lineTo(this.width/2, this.height - 10);
+	ctx.lineTo(this.width - 8, this.height - 8);
+	ctx.lineTo(this.width - 8, this.height - 6);
+	ctx.closePath();
+	ctx.fill();
+
+	ctx.beginPath();
+	ctx.moveTo(this.width/2, this.height - 10);
+	ctx.lineTo(this.width/2, this.height/2);
+	ctx.stroke();
+
+	ctx.fillStyle = "#FF0000";
+	ctx.beginPath();
+	ctx.moveTo(this.width/2, this.height/2);
+	ctx.lineTo(this.width/2, 6);
+	ctx.lineTo(8, 9)
+	ctx.closePath();
+	ctx.fill();
+}
+
 GridBox.prototype.draw = function() {
 	ctx.translate(this.xPos, this.yPos);
 	if(!this.revealed)
@@ -138,14 +163,9 @@ GridBox.prototype.draw = function() {
 		this.drawCell();
 	}
 	
-	
 	ctx.font = FIELD_FONT;
 	if(this.isMine) {
-		this.drawMine();
-		/*
-		ctx.fillStyle = "#000000";
-		ctx.fillText("X", 5, this.height - 5);
-		*/
+		this.drawFlag();
 	} else {
 		ctx.fillStyle = NUMBER_COLOURS[this.number];
 		ctx.fillText(this.number, 7, this.height - 7);
