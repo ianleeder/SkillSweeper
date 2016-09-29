@@ -32,11 +32,6 @@ var Box = function(xPos, yPos, width, height) {
 	this.height = height;
 }
 
-// Create a function for Box
-Box.prototype.SayHello = function() {
-	console.log("Width = " + this.width);
-}
-
 // Create a gridbox constructor
 function GridBox(x, y) {
 	Box.call(this, field.xPos + x*CELL_SIZE, field.yPos + y*CELL_SIZE, CELL_SIZE, CELL_SIZE);
@@ -54,10 +49,6 @@ GridBox.prototype = Object.create(Box.prototype);
 
 // Set the constructor for the GridBox object
 GridBox.prototype.constructor = GridBox;
-
-GridBox.prototype.SayHello = function() {
-	console.log("Height = " + this.height);
-}
 
 GridBox.prototype.countAdjacentMines = function() {
 	if(this.isMine)
@@ -158,17 +149,32 @@ GridBox.prototype.drawFlag = function () {
 
 GridBox.prototype.draw = function() {
 	ctx.translate(this.xPos, this.yPos);
-	if(!this.revealed)
-	{
-		this.drawCell();
-	}
-	
 	ctx.font = FIELD_FONT;
-	if(this.isMine) {
-		this.drawFlag();
+	if(this.revealed) {
+		// first draw the blank cell
+		ctx.fillStyle = CELL_COLOUR_REVEALED;
+		ctx.strokeStyle = 'black';
+
+		ctx.beginPath();
+		ctx.rect(0, 0, this.width, this.height);
+		ctx.fill();
+		ctx.lineWidth = 1;
+		ctx.stroke();
+
+		if (this.isMine) {
+			this.drawMine();
+		} else if(this.number === 0) {
+			// deal with cascade reveal
+		} else {
+			ctx.fillStyle = NUMBER_COLOURS[this.number];
+			ctx.fillText(this.number, 7, this.height - 7);
+		}
+		
 	} else {
-		ctx.fillStyle = NUMBER_COLOURS[this.number];
-		ctx.fillText(this.number, 7, this.height - 7);
+		this.drawCell();
+
+		if(this.isFlagged)
+			this.drawFlag();
 	}
 
 	ctx.setTransform(1, 0, 0, 1, 0, 0);
@@ -261,26 +267,56 @@ function drawCanvas()
 
 function mouseClickHandler(e)
 {
+	e.preventDefault();
+
 	if (!e.which && e.button) {
 		if (e.button & 1) e.which = 1      // Left
 		else if (e.button & 4) e.which = 2 // Middle
 		else if (e.button & 2) e.which = 3 // Right
 	}
+	
+	console.log("click detected " + e.which);
 
-	var X = e.pageX - this.offsetLeft 
-	var Y = e.pageY - this.offsetTop
+	var canvasX = e.pageX - this.offsetLeft;
+	var canvasY = e.pageY - this.offsetTop;
 
-	if(X < field.xPos || X > (field.xPos + field.width) || Y < field.yPos || Y > (field.yPos + field.height))
+	var fieldX = canvasX - field.xPos;
+	var fieldY = canvasY - field.yPos;
+
+	// if click occurred inside field
+	if(canvasX >= field.xPos &&
+		canvasX <= (field.xPos + field.width) &&
+		canvasY >= field.yPos &&
+		canvasY <= (field.yPos + field.height))
 	{
+		var xIndex = Math.floor(fieldX/CELL_SIZE);
+		var yIndex = Math.floor(fieldY/CELL_SIZE);
+		handleFieldClick(e, xIndex, yIndex);
 		return;
 	}
+}
 
-	alert("X = " + X + ", Y = " + Y);
+function handleFieldClick(e, x, y)
+{
+	if(!gameGrid[x][y].revealed) {
+
+		// If it was a left-click reveal the cell
+		if(e.which === 1)
+		{
+			gameGrid[x][y].revealed = true;
+			gameGrid[x][y].draw();
+		} else if (e.which === 3) {
+			// If it was a right-click, toggle flag state
+			gameGrid[x][y].isFlagged = !gameGrid[x][y].isFlagged;
+			gameGrid[x][y].draw();
+		}		
+	}
 }
 
 function registerListeners()
 {
 	canvas.onclick = mouseClickHandler;
+	canvas.oncontextmenu = mouseClickHandler;
 }
 
 function init() {
