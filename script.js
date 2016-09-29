@@ -180,6 +180,31 @@ GridBox.prototype.draw = function() {
 	ctx.setTransform(1, 0, 0, 1, 0, 0);
 }
 
+GridBox.prototype.reveal = function() {
+	// Game over man
+	if(this.isMine)
+		return;
+
+	// Do nothing
+	if(this.revealed)
+		return;
+
+	// Just reveal this cell and be done with it
+	if(this.number != 0) {
+		this.revealed = true;
+		this.draw();
+		return;
+	}
+
+	this.revealed = true;
+	this.draw();
+
+	// Now for the cascade!
+	for(var i = Math.max(this.xIndex-1, 0); i<Math.min(this.xIndex+2,difficulty.x); i++)
+		for(var j = Math.max(this.yIndex-1, 0); j<Math.min(this.yIndex+2,difficulty.y); j++)
+			gameGrid[i][j].reveal();
+}
+
 // VARIABLES
 var header = new Box(0, 0, 0, 150);
 var field = new Box(0, 15)
@@ -303,8 +328,7 @@ function handleFieldClick(e, x, y)
 		// If it was a left-click reveal the cell
 		if(e.which === 1)
 		{
-			gameGrid[x][y].revealed = true;
-			gameGrid[x][y].draw();
+			gameGrid[x][y].reveal();
 		} else if (e.which === 3) {
 			// If it was a right-click, toggle flag state
 			gameGrid[x][y].isFlagged = !gameGrid[x][y].isFlagged;
