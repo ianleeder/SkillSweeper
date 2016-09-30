@@ -432,7 +432,7 @@ function mouseClickHandler(e) {
 
 	// TEMP
 	// if click is in canvas but NOT field, create a new game
-	skillDetect();
+	newGame();
 }
 
 function skillDetect() {
@@ -472,6 +472,8 @@ function handleFieldClick(e, x, y) {
 			gameGrid[x][y].draw();
 		}		
 	}
+
+	skillDetect();
 }
 
 function startGame() {
