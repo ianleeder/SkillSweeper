@@ -48,7 +48,7 @@ function GridBox(x, y) {
 	this.revealed = false;
 	this.isMine = false;
 	this.isFlagged = false;
-	this.skillMine = false;
+	this.skillSafe = false;
 	this.skillFlag = false;
 	this.neighbours = [];
 }
@@ -81,7 +81,13 @@ GridBox.prototype.countAdjacentMines = function() {
 
 GridBox.prototype.drawCell = function() {
 	// Fill square to begin with
-	ctx.fillStyle = CELL_COLOUR_UNREVEALED;
+	
+	if(this.skillFlag)
+		ctx.fillStyle = "#F4B4B4";
+	else if (this.skillSafe)
+		ctx.fillStyle = "#B4F4B4";
+	else
+		ctx.fillStyle = CELL_COLOUR_UNREVEALED;
 	ctx.fillRect(0, 0, this.width, this.height);
 
 	// draw light bezel on top-left of cell
@@ -223,8 +229,6 @@ GridBox.prototype.countAdjacentUnrevealed = function() {
 }
 
 GridBox.prototype.chord = function() {
-	console.log("attempting to chord");
-
 	if(this.number != this.countAdjacentFlags())
 		return;
 
@@ -262,6 +266,40 @@ GridBox.prototype.reveal = function() {
 	// Now for the cascade!
 	for(var i=0; i<this.neighbours.length; i++)
 		this.neighbours[i].reveal();
+}
+
+GridBox.prototype.skillDetectFlag = function() {
+	// Only look at revealed squares AND they have a number
+	if(!this.revealed || this.number === 0)
+		return false;
+
+	if(this.countAdjacentFlags() >= this.number)
+		return false;
+
+	if(this.countAdjacentUnrevealed() + this.countAdjacentFlags() === this.number) {
+		for(var i=0; i<this.neighbours.length; i++) {
+			if(!this.neighbours[i].revealed){
+				this.neighbours[i].skillFlag = true;
+				this.neighbours[i].draw();
+			}
+		}
+	}
+}
+
+GridBox.prototype.skillDetectSafe = function() {
+	// Only look at revealed squares AND they have a number
+	if(!this.revealed || this.number === 0)
+		return false;
+
+	if(this.countAdjacentFlags() != this.number)
+		return false;
+
+	for(var i=0; i<this.neighbours.length; i++) {
+		if(!this.neighbours[i].revealed && !this.neighbours[i].isFlagged) {
+			this.neighbours[i].skillSafe = true;
+			this.neighbours[i].draw();
+		}
+	}
 }
 
 // VARIABLES
@@ -365,14 +403,6 @@ function drawCanvas() {
 	drawField();
 }
 
-function skillDetectMines()
-{
-	/*
-	for(var i = 0; i < gameGrid.length; i++)
-		for(var j=0; j<gameGrid[i].length; j++)
-			*/
-}
-
 function mouseClickHandler(e) {
 	e.preventDefault();
 
@@ -402,7 +432,24 @@ function mouseClickHandler(e) {
 
 	// TEMP
 	// if click is in canvas but NOT field, create a new game
-	newGame();
+	skillDetect();
+}
+
+function skillDetect() {
+	for(var i = 0; i < gameGrid.length; i++) {
+		for(var j=0; j<gameGrid[i].length; j++) {
+			gameGrid[i][j].skillFlag = false;
+			gameGrid[i][j].skillSafe = false;
+			gameGrid[i][j].draw();
+		}
+	}
+
+	for(var i = 0; i < gameGrid.length; i++) {
+		for(var j=0; j<gameGrid[i].length; j++) {
+			gameGrid[i][j].skillDetectFlag();
+			gameGrid[i][j].skillDetectSafe();
+		}
+	}
 }
 
 function handleFieldClick(e, x, y) {
