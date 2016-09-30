@@ -186,6 +186,31 @@ GridBox.prototype.draw = function() {
 	ctx.setTransform(1, 0, 0, 1, 0, 0);
 }
 
+GridBox.prototype.countAdjacentFlags = function() {
+	var numFlags = 0;
+
+	for(var i = Math.max(this.xIndex-1, 0); i<Math.min(this.xIndex+2,difficulty.x); i++)
+		for(var j = Math.max(this.yIndex-1, 0); j<Math.min(this.yIndex+2,difficulty.y); j++)
+			if(gameGrid[i][j].isFlagged)
+				numFlags++;
+
+	return numFlags;
+}
+
+GridBox.prototype.chord = function() {
+	console.log("attempting to chord");
+
+	if(this.number != this.countAdjacentFlags())
+		return;
+
+	if(this.number === 0)
+		return;
+
+	for(var i = Math.max(this.xIndex-1, 0); i<Math.min(this.xIndex+2,difficulty.x); i++)
+		for(var j = Math.max(this.yIndex-1, 0); j<Math.min(this.yIndex+2,difficulty.y); j++)
+			gameGrid[i][j].reveal();
+}
+
 GridBox.prototype.reveal = function() {
 	// Do nothing
 	if(this.revealed || this.isFlagged)
@@ -334,7 +359,9 @@ function mouseClickHandler(e)
 
 function handleFieldClick(e, x, y)
 {
-	if(!gameGrid[x][y].revealed) {
+	if(gameGrid[x][y].revealed) {
+		gameGrid[x][y].chord();
+	} else {
 
 		// If it was a left-click reveal the cell
 		if(e.which === 1)
