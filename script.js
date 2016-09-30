@@ -12,6 +12,12 @@ var CELL_BEZEL_DARK_COLOUR = "#696969";
 var BORDER_SIZE = 5;
 var FIELD_FONT = "18px Courier";
 
+// State variables
+var GAMESTATE_NEW = 1;
+var GAMESTATE_RUNNING = 2;
+var GAMESTATE_DEAD = 3;
+var GAMESTATE_WON = 4;
+
 var NUMBER_COLOURS = [
 	"#FF7701", // Should never hit this, number 0
 	"#0C24FA", // 1 Blue
@@ -244,7 +250,9 @@ GridBox.prototype.reveal = function() {
 // VARIABLES
 var header = new Box(0, 0, 0, 150);
 var field = new Box(0, 15)
+var openFirstClick = true;
 
+var gameState;
 var gameGrid;
 
 var beginnerDifficulty = {x:8, y:8, mines:10};
@@ -293,8 +301,9 @@ function initialiseField() {
 		for(var j=0; j<gameGrid[i].length; j++)
 			gameGrid[i][j] = new GridBox(i,j);
 	}
+}
 
-	// Place mines
+function placeMines(clickX, clickY) {
 	for(var m=0; m<difficulty.mines; m++)
 	{
 		var placed = false;
@@ -302,6 +311,20 @@ function initialiseField() {
 		do {
 			var x = Math.floor(Math.random() * difficulty.x);
 			var y = Math.floor(Math.random() * difficulty.y);
+
+			// Make sure we don't place a mine where the first click was
+			if(x === clickX && y === clickY)
+				continue;
+
+			if(openFirstClick &&
+				x >= clickX - 1 &&
+				x <= clickX + 1 &&
+				y >= clickY - 1 &&
+				y <= clickY + 1)
+			{
+				continue;
+			}
+
 
 			if(!gameGrid[x][y].isMine) {
 				gameGrid[x][y].isMine = true;
@@ -335,8 +358,6 @@ function mouseClickHandler(e)
 		else if (e.button & 4) e.which = 2 // Middle
 		else if (e.button & 2) e.which = 3 // Right
 	}
-	
-	console.log("click detected " + e.which);
 
 	var canvasX = e.pageX - this.offsetLeft;
 	var canvasY = e.pageY - this.offsetTop;
@@ -355,10 +376,16 @@ function mouseClickHandler(e)
 		handleFieldClick(e, xIndex, yIndex);
 		return;
 	}
+	newGame();
 }
 
 function handleFieldClick(e, x, y)
 {
+	if(gameState === GAMESTATE_NEW) {
+		placeMines(x, y);
+		startGame();
+	}
+
 	if(gameGrid[x][y].revealed) {
 		gameGrid[x][y].chord();
 	} else {
@@ -375,15 +402,24 @@ function handleFieldClick(e, x, y)
 	}
 }
 
-function registerListeners()
-{
+function startGame() {
+	gameState = GAMESTATE_RUNNING;
+	// start clock
+}
+
+function registerListeners() {
 	canvas.onclick = mouseClickHandler;
 	canvas.oncontextmenu = mouseClickHandler;
 }
 
+function newGame() {
+	initialiseField();
+	drawCanvas();
+	gameState = GAMESTATE_NEW;
+}
+
 function init() {
 	initialiseCanvas();
-	initialiseField();
 	registerListeners();
-	drawCanvas();
+	newGame();
 }
