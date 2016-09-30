@@ -227,7 +227,7 @@ GridBox.prototype.reveal = function() {
 	{
 		this.revealed = true;
 		this.draw();
-		// end game
+		hitMine();
 		return;
 	}
 
@@ -405,6 +405,14 @@ function handleFieldClick(e, x, y)
 function startGame() {
 	gameState = GAMESTATE_RUNNING;
 	// start clock
+}
+
+function hitMine() {
+	gameState = GAMESTATE_DEAD;
+	alert("You are dead!");
+	// show message
+	// stop clock
+	newGame();
 }
 
 function registerListeners() {
