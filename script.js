@@ -276,9 +276,9 @@ GridBox.prototype.skillDetectFlag = function() {
 	if(this.countAdjacentFlags() >= this.number)
 		return false;
 
-	if(this.countAdjacentUnrevealed() + this.countAdjacentFlags() === this.number) {
+	if(this.countAdjacentUnrevealed() === this.number) {
 		for(var i=0; i<this.neighbours.length; i++) {
-			if(!this.neighbours[i].revealed){
+			if(!this.neighbours[i].revealed && !this.neighbours[i].isFlagged) {
 				this.neighbours[i].skillFlag = true;
 				this.neighbours[i].draw();
 			}
