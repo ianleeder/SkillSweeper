@@ -48,6 +48,9 @@ function GridBox(x, y) {
 	this.revealed = false;
 	this.isMine = false;
 	this.isFlagged = false;
+	this.skillMine = false;
+	this.skillFlag = false;
+	this.neighbours = [];
 }
 
 // Make GridBox extend Box
@@ -56,17 +59,24 @@ GridBox.prototype = Object.create(Box.prototype);
 // Set the constructor for the GridBox object
 GridBox.prototype.constructor = GridBox;
 
-GridBox.prototype.countAdjacentMines = function() {
-	if(this.isMine)
-		return;
-
+GridBox.prototype.init = function() {
 	// In the general case we want to look from one left to one right,
 	// and from one above to one below.
 	// However the easiest way to do bounds checks it to use min/max cleverly.
 	for(var i = Math.max(this.xIndex-1, 0); i<Math.min(this.xIndex+2,difficulty.x); i++)
 		for(var j = Math.max(this.yIndex-1, 0); j<Math.min(this.yIndex+2,difficulty.y); j++)
-			if(gameGrid[i][j].isMine)
-				this.number++;
+			this.neighbours.push(gameGrid[i][j]);
+
+	this.countAdjacentMines();
+}
+
+GridBox.prototype.countAdjacentMines = function() {
+	if(this.isMine)
+		return;
+
+	for(var i=0; i<this.neighbours.length; i++)
+		if(this.neighbours[i].isMine)
+			this.number++;
 }
 
 GridBox.prototype.drawCell = function() {
@@ -195,12 +205,21 @@ GridBox.prototype.draw = function() {
 GridBox.prototype.countAdjacentFlags = function() {
 	var numFlags = 0;
 
-	for(var i = Math.max(this.xIndex-1, 0); i<Math.min(this.xIndex+2,difficulty.x); i++)
-		for(var j = Math.max(this.yIndex-1, 0); j<Math.min(this.yIndex+2,difficulty.y); j++)
-			if(gameGrid[i][j].isFlagged)
-				numFlags++;
+	for(var i=0; i<this.neighbours.length; i++)
+		if(this.neighbours[i].isFlagged)
+			numFlags++;
 
 	return numFlags;
+}
+
+GridBox.prototype.countAdjacentUnrevealed = function() {
+	var numUnrevealed = 0;
+
+	for(var i=0; i<this.neighbours.length; i++)
+		if(!this.neighbours[i].revealed)
+			numUnrevealed++;
+
+	return numUnrevealed;
 }
 
 GridBox.prototype.chord = function() {
@@ -212,9 +231,8 @@ GridBox.prototype.chord = function() {
 	if(this.number === 0)
 		return;
 
-	for(var i = Math.max(this.xIndex-1, 0); i<Math.min(this.xIndex+2,difficulty.x); i++)
-		for(var j = Math.max(this.yIndex-1, 0); j<Math.min(this.yIndex+2,difficulty.y); j++)
-			gameGrid[i][j].reveal();
+	for(var i=0; i<this.neighbours.length; i++)
+		this.neighbours[i].reveal();
 }
 
 GridBox.prototype.reveal = function() {
@@ -242,9 +260,8 @@ GridBox.prototype.reveal = function() {
 	this.draw();
 
 	// Now for the cascade!
-	for(var i = Math.max(this.xIndex-1, 0); i<Math.min(this.xIndex+2,difficulty.x); i++)
-		for(var j = Math.max(this.yIndex-1, 0); j<Math.min(this.yIndex+2,difficulty.y); j++)
-			gameGrid[i][j].reveal();
+	for(var i=0; i<this.neighbours.length; i++)
+		this.neighbours[i].reveal();
 }
 
 // VARIABLES
@@ -334,14 +351,13 @@ function placeMines(clickX, clickY) {
 		while (!placed)
 	}
 
-	// Count mines
+	// Initialise the cell
 	for(var i = 0; i < gameGrid.length; i++)
 		for(var j=0; j<gameGrid[i].length; j++)
-			gameGrid[i][j].countAdjacentMines();
+			gameGrid[i][j].init();
 }
 
-function drawCanvas()
-{
+function drawCanvas() {
 	ctx.fillStyle = "#000000";
 	ctx.fillRect(0,0,canvas.width, canvas.height);
 
@@ -349,8 +365,15 @@ function drawCanvas()
 	drawField();
 }
 
-function mouseClickHandler(e)
+function skillDetectMines()
 {
+	/*
+	for(var i = 0; i < gameGrid.length; i++)
+		for(var j=0; j<gameGrid[i].length; j++)
+			*/
+}
+
+function mouseClickHandler(e) {
 	e.preventDefault();
 
 	if (!e.which && e.button) {
@@ -376,11 +399,13 @@ function mouseClickHandler(e)
 		handleFieldClick(e, xIndex, yIndex);
 		return;
 	}
+
+	// TEMP
+	// if click is in canvas but NOT field, create a new game
 	newGame();
 }
 
-function handleFieldClick(e, x, y)
-{
+function handleFieldClick(e, x, y) {
 	if(gameState === GAMESTATE_NEW) {
 		placeMines(x, y);
 		startGame();
@@ -410,6 +435,7 @@ function startGame() {
 function hitMine() {
 	gameState = GAMESTATE_DEAD;
 	alert("You are dead!");
+	// sad face sun
 	// show message
 	// stop clock
 	newGame();
@@ -424,6 +450,7 @@ function newGame() {
 	initialiseField();
 	drawCanvas();
 	gameState = GAMESTATE_NEW;
+	// happy face sun
 }
 
 function init() {
