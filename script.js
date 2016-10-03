@@ -481,6 +481,18 @@ function mouseClickHandler(e) {
 }
 
 function autoPlay(oneMoveAtATime) {
+	var timeInterval = 200;
+	if(oneMoveAtATime)
+		timeInterval = 10;
+
+	var autoRunInterval = setInterval(function() {
+		var v = autoMove(oneMoveAtATime);
+		if(!v)
+			clearInterval(autoRunInterval);
+	}, timeInterval);
+}
+
+function autoMove(oneMoveAtATime) {
 	for(var i = 0; i < gameGrid.length; i++) {
 		for(var j=0; j<gameGrid[i].length; j++) {
 			if(gameGrid[i][j].skillFlag) {
