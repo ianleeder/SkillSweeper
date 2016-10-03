@@ -175,6 +175,8 @@ GridBox.prototype.draw = function() {
 	if(this.revealed) {
 		// first draw the blank cell
 		ctx.fillStyle = CELL_COLOUR_REVEALED;
+		if(this.isMine)
+			ctx.fillStyle = "#FF0000";
 		ctx.strokeStyle = 'black';
 
 		ctx.beginPath();
@@ -493,6 +495,9 @@ function autoPlay(oneMoveAtATime) {
 }
 
 function autoMove(oneMoveAtATime) {
+	if(gameState != GAMESTATE_RUNNING)
+		return false;
+
 	for(var i = 0; i < gameGrid.length; i++) {
 		for(var j=0; j<gameGrid[i].length; j++) {
 			if(gameGrid[i][j].skillFlag) {
@@ -573,7 +578,7 @@ function hitMine() {
 	// sad face sun
 	// show message
 	// stop clock
-	newGame();
+	//newGame();
 }
 
 function registerListeners() {
