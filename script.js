@@ -113,6 +113,9 @@ GridBox.prototype.drawCell = function() {
 	ctx.lineTo(this.width, this.height); // bottom-right
 	ctx.closePath();
 	ctx.fill();
+
+	if(gameState === GAMESTATE_DEAD && this.isMine && !this.isFlagged)
+		this.drawMine();
 }
 
 GridBox.prototype.drawMine = function() {
@@ -125,6 +128,7 @@ GridBox.prototype.drawMine = function() {
 	ctx.fillStyle = "#000000";
 	ctx.fill();
 
+	ctx.strokeStyle = "#000000";
 	ctx.beginPath();
 	ctx.moveTo(centerX - radius - 2, centerY);
 	ctx.lineTo(centerX + radius + 2, centerY);
@@ -155,6 +159,7 @@ GridBox.prototype.drawFlag = function () {
 	ctx.closePath();
 	ctx.fill();
 
+	ctx.strokeStyle = "#000000";
 	ctx.beginPath();
 	ctx.moveTo(this.width/2, this.height - 10);
 	ctx.lineTo(this.width/2, this.height/2);
@@ -167,6 +172,19 @@ GridBox.prototype.drawFlag = function () {
 	ctx.lineTo(8, 9)
 	ctx.closePath();
 	ctx.fill();
+
+	if(gameState === GAMESTATE_DEAD && !this.isMine) {
+		ctx.strokeStyle = "#FF0000";
+		ctx.beginPath();
+		ctx.moveTo(0, 0);
+		ctx.lineTo(this.width, this.height);
+		ctx.stroke();
+
+		ctx.beginPath();
+		ctx.moveTo(this.width, 0);
+		ctx.lineTo(0, this.height);
+		ctx.stroke();
+	}
 }
 
 GridBox.prototype.draw = function() {
