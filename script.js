@@ -276,14 +276,19 @@ GridBox.prototype.skillDetectFlag = function() {
 	if(this.countAdjacentFlags() >= this.number)
 		return false;
 
+	var anyMovesFound = false;
+
 	if(this.countAdjacentUnrevealed() === this.number) {
 		for(var i=0; i<this.neighbours.length; i++) {
 			if(!this.neighbours[i].revealed && !this.neighbours[i].isFlagged) {
 				this.neighbours[i].skillFlag = true;
 				this.neighbours[i].draw();
+				anyMovesFound = true;
 			}
 		}
 	}
+
+	return anyMovesFound;
 }
 
 GridBox.prototype.skillDetectSafe = function() {
@@ -294,12 +299,50 @@ GridBox.prototype.skillDetectSafe = function() {
 	if(this.countAdjacentFlags() != this.number)
 		return false;
 
+	var anyMovesFound = false;
+
 	for(var i=0; i<this.neighbours.length; i++) {
 		if(!this.neighbours[i].revealed && !this.neighbours[i].isFlagged) {
 			this.neighbours[i].skillSafe = true;
 			this.neighbours[i].draw();
+			anyMovesFound = true;
 		}
 	}
+
+	return anyMovesFound;
+}
+
+GridBox.prototype.equals = function(g2) {
+	if(!(g2 instanceof GridBox))
+		return false;
+
+	return this.xIndex === g2.xIndex && this.yIndex === g2.yIndex;
+}
+
+GridBox.prototype.skillCrossReferenceNearby = function() {
+	// Only look at revealed squares AND they have a number
+	if(!this.revealed || this.number === 0)
+		return false;
+
+
+
+	// First let's look at our revealed neighbours
+	for(var i=0; i<this.neighbours.length; i++) {
+		var n = this.neighbours[i];
+
+		if(!n.revealed)
+			continue;
+	
+		var sharedNeighbours = [];
+
+		for(var j=0; j<n.neighbours[j].length; j++) {
+			if(n.neighbours[j]) {
+
+			}
+		}
+	}
+
+	// We want to look at each neighbour's neighbour
 }
 
 // VARIABLES
@@ -432,10 +475,36 @@ function mouseClickHandler(e) {
 
 	// TEMP
 	// if click is in canvas but NOT field, create a new game
-	newGame();
+	// newGame();
+
+	autoPlay(true);
+}
+
+function autoPlay(oneMoveAtATime) {
+	for(var i = 0; i < gameGrid.length; i++) {
+		for(var j=0; j<gameGrid[i].length; j++) {
+			if(gameGrid[i][j].skillFlag) {
+				gameGrid[i][j].isFlagged = true;
+				gameGrid[i][j].draw();
+
+				if(oneMoveAtATime)
+					return skillDetect();
+			}
+
+			if(gameGrid[i][j].skillSafe) {
+				gameGrid[i][j].reveal();
+
+				if(oneMoveAtATime)
+					return skillDetect();
+			}
+		}
+	}
+	return skillDetect();
 }
 
 function skillDetect() {
+	var anyMovesFound = false;
+
 	for(var i = 0; i < gameGrid.length; i++) {
 		for(var j=0; j<gameGrid[i].length; j++) {
 			gameGrid[i][j].skillFlag = false;
@@ -446,10 +515,15 @@ function skillDetect() {
 
 	for(var i = 0; i < gameGrid.length; i++) {
 		for(var j=0; j<gameGrid[i].length; j++) {
-			gameGrid[i][j].skillDetectFlag();
-			gameGrid[i][j].skillDetectSafe();
+			if(gameGrid[i][j].skillDetectFlag())
+				anyMovesFound = true;
+
+			if(gameGrid[i][j].skillDetectSafe())
+				anyMovesFound = true;
 		}
 	}
+
+	return anyMovesFound;
 }
 
 function handleFieldClick(e, x, y) {
