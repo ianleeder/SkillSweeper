@@ -550,6 +550,19 @@ var skillSweeper = (function() {
 	function checkForWin() {
 		if(gameState != GAMESTATE_RUNNING)
 			return;
+
+		// Count all squares that are still unrevealed
+		// If equal to the number of mines, it's a win
+		// Ignore flags, as any incorreclty flagged would have already ended the game.
+		var totalUnrevealed = 0;
+
+		for(var i = 0; i < gameGrid.length; i++)
+			for(var j=0; j<gameGrid[i].length; j++)
+				if(!gameGrid[i][j].revealed)
+					totalUnrevealed ++;
+
+		if(totalUnrevealed === difficulty.mines)
+			gameWon();
 	}
 
 	function autoPlay(oneMoveAtATime) {
@@ -559,8 +572,10 @@ var skillSweeper = (function() {
 
 		var autoRunInterval = setInterval(function() {
 			var v = autoMove(oneMoveAtATime);
-			if(!v)
+			if(!v) {
 				clearInterval(autoRunInterval);
+				checkForWin();
+			}
 		}, timeInterval);
 	}
 
@@ -635,6 +650,13 @@ var skillSweeper = (function() {
 		}
 
 		skillDetect();
+	}
+
+	function gameWon() {
+		gameState = GAMESTATE_WON;
+		alert("You won!");
+		// stop clock
+		// highscore
 	}
 
 	function startGame() {
