@@ -39,6 +39,39 @@ var skillSweeper = (function() {
 		this.height = height;
 	}
 
+	Box.prototype.isClickInside = function(clickX, clickY) {
+		return clickX >= this.xPos &&
+				clickX <= (this.xPos + this.width) &&
+				clickY >= this.yPos &&
+				clickY <= (this.yPos + this.height);
+	}
+
+	Box.prototype.drawBezel = function() {
+		// draw light bezel on top-left of cell
+		ctx.fillStyle = CELL_BEZEL_LIGHT_COLOUR;
+		ctx.beginPath();
+		ctx.moveTo(0, this.height); // bottom-left
+		ctx.lineTo(CELL_BEZEL, this.height - CELL_BEZEL); // inset bottom-eft
+		ctx.lineTo(CELL_BEZEL, CELL_BEZEL); // inset top-left
+		ctx.lineTo(this.width - CELL_BEZEL, CELL_BEZEL); // inset top-right
+		ctx.lineTo(this.width, 0); // top-right
+		ctx.lineTo(0, 0); // top-left
+		ctx.closePath();
+		ctx.fill();
+
+		// draw dark bezel on bottom-right of cell
+		ctx.fillStyle = CELL_BEZEL_DARK_COLOUR;
+		ctx.beginPath();
+		ctx.moveTo(0, this.height); // bottom-left
+		ctx.lineTo(CELL_BEZEL, this.height - CELL_BEZEL); // inset bottom-eft
+		ctx.lineTo(this.width - CELL_BEZEL, this.height - CELL_BEZEL); // inset bottom-right
+		ctx.lineTo(this.width - CELL_BEZEL, CELL_BEZEL); // inset top-right
+		ctx.lineTo(this.width, 0); // top-right
+		ctx.lineTo(this.width, this.height); // bottom-right
+		ctx.closePath();
+		ctx.fill();
+	}
+
 	// Create a gridbox constructor
 	function GridBox(x, y) {
 		Box.call(this, field.xPos + x*CELL_SIZE, field.yPos + y*CELL_SIZE, CELL_SIZE, CELL_SIZE);
@@ -59,6 +92,17 @@ var skillSweeper = (function() {
 
 	// Set the constructor for the GridBox object
 	GridBox.prototype.constructor = GridBox;
+
+	// Create a button constructor
+	function Button(x, y, width, height, text, action) {
+		Box.call(this, x, y, width, height);
+
+		this.text = text;
+		this.action = action;
+	}
+
+	Button.prototype = Object.create(Box.prototype);
+	Button.prototype.constructor = Button;
 
 	GridBox.prototype.init = function() {
 		// In the general case we want to look from one left to one right,
@@ -91,29 +135,7 @@ var skillSweeper = (function() {
 			ctx.fillStyle = CELL_COLOUR_UNREVEALED;
 		ctx.fillRect(0, 0, this.width, this.height);
 
-		// draw light bezel on top-left of cell
-		ctx.fillStyle = CELL_BEZEL_LIGHT_COLOUR;
-		ctx.beginPath();
-		ctx.moveTo(0, this.height); // bottom-left
-		ctx.lineTo(CELL_BEZEL, this.height - CELL_BEZEL); // inset bottom-eft
-		ctx.lineTo(CELL_BEZEL, CELL_BEZEL); // inset top-left
-		ctx.lineTo(this.width - CELL_BEZEL, CELL_BEZEL); // inset top-right
-		ctx.lineTo(this.width, 0); // top-right
-		ctx.lineTo(0, 0); // top-left
-		ctx.closePath();
-		ctx.fill();
-
-		// draw dark bezel on bottom-right of cell
-		ctx.fillStyle = CELL_BEZEL_DARK_COLOUR;
-		ctx.beginPath();
-		ctx.moveTo(0, this.height); // bottom-left
-		ctx.lineTo(CELL_BEZEL, this.height - CELL_BEZEL); // inset bottom-eft
-		ctx.lineTo(this.width - CELL_BEZEL, this.height - CELL_BEZEL); // inset bottom-right
-		ctx.lineTo(this.width - CELL_BEZEL, CELL_BEZEL); // inset top-right
-		ctx.lineTo(this.width, 0); // top-right
-		ctx.lineTo(this.width, this.height); // bottom-right
-		ctx.closePath();
-		ctx.fill();
+		this.drawBezel();
 
 		if(gameState === GAMESTATE_DEAD && this.isMine && !this.isFlagged)
 			this.drawMine();
