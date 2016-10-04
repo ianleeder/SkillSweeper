@@ -1,6 +1,0 @@
-{
-  "name": "Skillsweeper",
-  "tagline": "Minesweeper, without the luck.",
-  "body": "### Purpose\r\nI love playing MineSweeper, but hate the random chance that detracts from the skill of playing the game.  I set out to make a new version of MineSweeper that would remove the element of chance, leaving just a game of skill: SkillSweeper.\r\n\r\n### Status\r\nThis is a pretty raw alpha version of the application.\r\n\r\n#### Implemented\r\n- Basic detection of safe cells and certain mines\r\n- Basic game state\r\n- Autoplay mode\r\n\r\n#### To-Do\r\n- More advanced detection algorithm\r\n- Proper start/end game screens\r\n- Timer\r\n- Remaining mines counter\r\n- Game win detections\r\n- Configurable options\r\n- Highscore history\r\n- Upgrade graphics\r\n\r\n### Play\r\n<canvas id=\"skillSweeperCanvas\" width=\"610\" height=\"665\">\r\nThis browser can not run this game (canvas support missing).\r\n</canvas>\r\n<script src=\"script.js\"></script>\r\n### Support or Contact\r\nHaving trouble with Pages? Check out our [documentation](https://help.github.com/pages) or [contact support](https://github.com/contact) and we’ll help you sort it out.\r\n",
-  "note": "Don't delete this file! It's used internally to help with page regeneration."
-}
