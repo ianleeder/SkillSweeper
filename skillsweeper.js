@@ -39,6 +39,15 @@ var skillSweeper = (function() {
 		this.height = height;
 	}
 
+	Box.prototype.offsetDrawingContext = function() {
+		this.resetDrawingContext();
+		ctx.translate(this.xPos, this.yPos);
+	}
+
+	Box.prototype.resetDrawingContext = function() {
+		ctx.setTransform(1, 0, 0, 1, 0, 0);
+	}
+
 	Box.prototype.isClickInside = function(clickX, clickY) {
 		return clickX >= this.xPos &&
 				clickX <= (this.xPos + this.width) &&
@@ -94,15 +103,27 @@ var skillSweeper = (function() {
 	GridBox.prototype.constructor = GridBox;
 
 	// Create a button constructor
-	function Button(x, y, width, height, text, action) {
+	function Button(x, y, width, height, text) {
 		Box.call(this, x, y, width, height);
 
 		this.text = text;
-		this.action = action;
 	}
 
 	Button.prototype = Object.create(Box.prototype);
 	Button.prototype.constructor = Button;
+
+	Button.prototype.draw = function() {
+		this.offsetDrawingContext();
+		ctx.fillStyle = CELL_COLOUR_UNREVEALED;
+		ctx.fillRect(0, 0, this.width, this.height);
+		this.drawBezel();
+
+		ctx.fillStyle = "#000000";
+		ctx.font = "14px Courier";
+		ctx.fillText(this.text, 7, this.height - 7);
+
+		this.resetDrawingContext();
+	}
 
 	GridBox.prototype.init = function() {
 		// In the general case we want to look from one left to one right,
@@ -402,6 +423,9 @@ var skillSweeper = (function() {
 
 	var difficulty = expertDifficulty;
 
+	var newGameButton;
+	var autoPlayButton;
+
 
 	// Get the canvas context
 	var canvas = document.getElementById('skillSweeperCanvas');
@@ -432,6 +456,9 @@ var skillSweeper = (function() {
 
 		canvas.width = (2 * BORDER_SIZE) + field.width;
 		canvas.height = field.yPos + field.height + BORDER_SIZE;
+
+		newGameButton = new Button(2*BORDER_SIZE, 2*BORDER_SIZE, 90, 20, "New Game");
+		autoPlayButton = new Button(2*BORDER_SIZE, 2*BORDER_SIZE + 20, 90, 20, "Autoplay");
 	}
 
 	function initialiseField() {
@@ -487,6 +514,12 @@ var skillSweeper = (function() {
 
 		drawHeader();
 		drawField();
+		drawButtons();
+	}
+
+	function drawButtons() {
+		newGameButton.draw();
+		autoPlayButton.draw();
 	}
 
 	function mouseClickHandler(e) {
@@ -501,26 +534,22 @@ var skillSweeper = (function() {
 		var canvasX = e.pageX - this.offsetLeft;
 		var canvasY = e.pageY - this.offsetTop;
 
-		var fieldX = canvasX - field.xPos;
-		var fieldY = canvasY - field.yPos;
-
 		// if click occurred inside field
-		if(canvasX >= field.xPos &&
-			canvasX <= (field.xPos + field.width) &&
-			canvasY >= field.yPos &&
-			canvasY <= (field.yPos + field.height))
-		{
-			var xIndex = Math.floor(fieldX/CELL_SIZE);
-			var yIndex = Math.floor(fieldY/CELL_SIZE);
+		if(field.isClickInside(canvasX, canvasY)) {
+			var xIndex = Math.floor((canvasX - field.xPos)/CELL_SIZE);
+			var yIndex = Math.floor((canvasY - field.yPos)/CELL_SIZE);
 			handleFieldClick(e, xIndex, yIndex);
-			return;
+			checkForWin();
+		} else if(newGameButton.isClickInside(canvasX, canvasY)) {
+			newGame();
+		} else if(autoPlayButton.isClickInside(canvasX, canvasY)) {
+			autoPlay(true);
 		}
+	}
 
-		// TEMP
-		// if click is in canvas but NOT field, create a new game
-		// newGame();
-
-		autoPlay(true);
+	function checkForWin() {
+		if(gameState != GAMESTATE_RUNNING)
+			return;
 	}
 
 	function autoPlay(oneMoveAtATime) {
@@ -619,7 +648,6 @@ var skillSweeper = (function() {
 		// sad face sun
 		// show message
 		// stop clock
-		//newGame();
 	}
 
 	function registerListeners() {
