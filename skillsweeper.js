@@ -129,9 +129,14 @@ var skillSweeper = (function() {
 		// In the general case we want to look from one left to one right,
 		// and from one above to one below.
 		// However the easiest way to do bounds checks it to use min/max cleverly.
-		for(var i = Math.max(this.xIndex-1, 0); i<Math.min(this.xIndex+2,difficulty.x); i++)
-			for(var j = Math.max(this.yIndex-1, 0); j<Math.min(this.yIndex+2,difficulty.y); j++)
+		for(var i = Math.max(this.xIndex-1, 0); i<Math.min(this.xIndex+2,difficulty.x); i++) {
+			for(var j = Math.max(this.yIndex-1, 0); j<Math.min(this.yIndex+2,difficulty.y); j++) {
+				if(i == this.xIndex && j == this.yIndex)
+					continue;
+
 				this.neighbours.push(gameGrid[i][j]);
+			}
+		}
 
 		this.countAdjacentMines();
 	}
@@ -390,26 +395,77 @@ var skillSweeper = (function() {
 		if(!this.revealed || this.number === 0)
 			return false;
 
+		// Need to look around ourself 2 squares out
+		for(var i=Math.max(this.xIndex - 2, 0); i<Math.min(this.xIndex + 2, difficulty.x); i++) {
+			// don't compare to self
+			if(i === this.xIndex && j === this.yIndex)
+				continue;
 
+			var nearby = gameGrid[i][j];
 
-		// First let's look at our revealed neighbours
-		for(var i=0; i<this.neighbours.length; i++) {
-			var n = this.neighbours[i];
-
-			if(!n.revealed)
+			if(!nearby.revealed)
 				continue;
 		
-			var sharedNeighbours = [];
+			var sharedNeighbours = this.intersectingCells(nearby);
 
-			for(var j=0; j<n.neighbours[j].length; j++) {
-				if(n.neighbours[j]) {
-
-				}
+			if(sharedNeighbours && sharedNeighbours.length > 0) {
+				console.log("Myself (" + this.xIndex + "," + this.yIndex +
+					") and my nearby neighbour (" + nearby.xIndex + "," +
+					nearby.yIndex ") have sharedNeighbours!");
+				console.log(sharedNeighbours);
 			}
 		}
-
-		// We want to look at each neighbour's neighbour
 	}
+
+	GridBox.prototype.intersectingCells = function(nearby) {
+		// If the object being passed in isn't another GridBox
+		// return now (equivalent to null)
+		if(!(nearby instanceof GridBox))
+			return;
+
+		// Not interested in mutual neighbours if this cell is hidden or 0
+		if(!this.revealed || this.number === 0 ||
+			!nearby.revealed || nearby.number === 0)
+			return;
+
+		// If it's that far apart we have no mutual neighbours
+		if(Math.abs(this.xIndex - nearby.xIndex) > 2 || Math.abs(this.yIndex - nearby.yIndex) > 2)
+			return;
+
+		var intersection = [];
+
+		// Comparing x1 to x3
+		// I want 2
+
+		// Comparing x2 to x3
+		// I want 2 to 3
+
+		// Comparing x2 to x2
+		// I want 1 to 3
+
+		// Start at max-1, run to min+1
+
+		for(var i = Math.max(this.xIndex, nearby.xIndex)-1; i<= Math.min(this.xIndex, nearby.xIndex)+1; i++)
+			for(var j = Math.max(this.yIndex, nearby.yIndex)-1; j<= Math.min(this.yIndex, nearby.yIndex)+1; j++)
+				if(!gameGrid[i][j].revealed)
+					intersection.push(gameGrid[i][j]);
+		
+		return intersection;
+	}
+
+	GridBox.prototype.isMyNeighbour = function(nearby) {
+		// If the object being passed in isn't another GridBox
+		// return now (equivalent to null)
+		if(!(nearby instanceof GridBox))
+			return false;
+
+		for(var i=0; i<this.neighbours.length; i++)
+			if(this.neighbours[i].equals(nearby))
+				return true;
+
+		return false;
+	}
+
 
 	// VARIABLES
 	var header = new Box(0, 0, 0, 150);
@@ -552,6 +608,15 @@ var skillSweeper = (function() {
 			newGame();
 		} else if(autoPlayButton.isClickInside(canvasX, canvasY)) {
 			autoPlay(true);
+		} else {
+			var v11 = gameGrid[1][1];
+			var v12 = gameGrid[1][2];
+			var v33 = gameGrid[3][3];
+			var v00 = gameGrid[0][0];
+
+			console.log(v00.intersectingCells(v12));
+			console.log(v00.intersectingCells(v33));
+			console.log(v11.intersectingCells(v33));
 		}
 	}
 
