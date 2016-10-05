@@ -308,6 +308,8 @@ var skillSweeper = (function() {
 		if(this.revealed || this.isFlagged)
 			return;
 
+		totalUnrevealed--;
+
 		// Game over man
 		if(this.isMine)
 		{
@@ -425,7 +427,8 @@ var skillSweeper = (function() {
 
 	var newGameButton;
 	var autoPlayButton;
-
+	var totalFlagged;
+	var totalUnrevealed;
 
 	// Get the canvas context
 	var canvas = document.getElementById('skillSweeperCanvas');
@@ -450,6 +453,10 @@ var skillSweeper = (function() {
 	}
 
 	function initialiseCanvas() {
+		// Disable double-clicks from selecting text outside the canvas
+		// http://stackoverflow.com/a/3685462
+		canvas.onselectstart = function () { return false; }
+
 		var width = difficulty.x * CELL_SIZE;
 		header = new Box(BORDER_SIZE, BORDER_SIZE, width, 50);
 		field = new Box(BORDER_SIZE, header.height+(2*BORDER_SIZE), difficulty.x * CELL_SIZE, difficulty.y * CELL_SIZE);
@@ -535,7 +542,8 @@ var skillSweeper = (function() {
 		var canvasY = e.pageY - this.offsetTop;
 
 		// if click occurred inside field
-		if(field.isClickInside(canvasX, canvasY)) {
+		if((gameState === GAMESTATE_RUNNING || gameState === GAMESTATE_NEW) &&
+			field.isClickInside(canvasX, canvasY)) {
 			var xIndex = Math.floor((canvasX - field.xPos)/CELL_SIZE);
 			var yIndex = Math.floor((canvasY - field.yPos)/CELL_SIZE);
 			handleFieldClick(e, xIndex, yIndex);
@@ -550,16 +558,6 @@ var skillSweeper = (function() {
 	function checkForWin() {
 		if(gameState != GAMESTATE_RUNNING)
 			return;
-
-		// Count all squares that are still unrevealed
-		// If equal to the number of mines, it's a win
-		// Ignore flags, as any incorreclty flagged would have already ended the game.
-		var totalUnrevealed = 0;
-
-		for(var i = 0; i < gameGrid.length; i++)
-			for(var j=0; j<gameGrid[i].length; j++)
-				if(!gameGrid[i][j].revealed)
-					totalUnrevealed ++;
 
 		if(totalUnrevealed === difficulty.mines)
 			gameWon();
@@ -587,17 +585,19 @@ var skillSweeper = (function() {
 			for(var j=0; j<gameGrid[i].length; j++) {
 				if(gameGrid[i][j].skillFlag) {
 					gameGrid[i][j].isFlagged = true;
+					gameGrid[i][j].skillFlag = false;
 					gameGrid[i][j].draw();
 
 					if(oneMoveAtATime)
-						return skillDetect();
+						return true;
 				}
 
 				if(gameGrid[i][j].skillSafe) {
+					gameGrid[i][j].skillSafe = false;
 					gameGrid[i][j].reveal();
 
 					if(oneMoveAtATime)
-						return skillDetect();
+						return true;
 				}
 			}
 		}
@@ -643,6 +643,12 @@ var skillSweeper = (function() {
 			{
 				gameGrid[x][y].reveal();
 			} else if (e.which === 3) {
+				// If we're removing a flag, decrement our counter
+				if(gameGrid[x][y].isFlagged)
+					totalFlagged--;
+				else
+					totalFlagged++;
+
 				// If it was a right-click, toggle flag state
 				gameGrid[x][y].isFlagged = !gameGrid[x][y].isFlagged;
 				gameGrid[x][y].draw();
@@ -678,6 +684,8 @@ var skillSweeper = (function() {
 	}
 
 	function newGame() {
+		totalFlagged = 0;
+		totalUnrevealed = difficulty.x * difficulty.y;
 		initialiseField();
 		drawCanvas();
 		gameState = GAMESTATE_NEW;
