@@ -396,23 +396,25 @@ var skillSweeper = (function() {
 			return false;
 
 		// Need to look around ourself 2 squares out
-		for(var i=Math.max(this.xIndex - 2, 0); i<Math.min(this.xIndex + 2, difficulty.x); i++) {
-			// don't compare to self
-			if(i === this.xIndex && j === this.yIndex)
-				continue;
+		for(var i=Math.max(this.xIndex - 2, 0); i<=Math.min(this.xIndex + 2, difficulty.x); i++) {
+			for(var j=Math.max(this.yIndex - 2, 0); j<=Math.min(this.yIndex + 2, difficulty.y); j++) {
+				// don't compare to self
+				if(i === this.xIndex && j === this.yIndex)
+					continue;
 
-			var nearby = gameGrid[i][j];
+				var nearby = gameGrid[i][j];
 
-			if(!nearby.revealed)
-				continue;
-		
-			var sharedNeighbours = this.intersectingCells(nearby);
+				if(!nearby.revealed)
+					continue;
+			
+				var sharedNeighbours = this.intersectingCells(nearby);
 
-			if(sharedNeighbours && sharedNeighbours.length > 0) {
-				console.log("Myself (" + this.xIndex + "," + this.yIndex +
-					") and my nearby neighbour (" + nearby.xIndex + "," +
-					nearby.yIndex ") have sharedNeighbours!");
-				console.log(sharedNeighbours);
+				if(sharedNeighbours && sharedNeighbours.length > 0) {
+					console.log("Myself (" + this.xIndex + "," + this.yIndex +
+						") and my nearby neighbour (" + nearby.xIndex + "," +
+						nearby.yIndex + ") have sharedNeighbours!");
+					console.log(sharedNeighbours);
+				}
 			}
 		}
 	}
@@ -614,9 +616,7 @@ var skillSweeper = (function() {
 			var v33 = gameGrid[3][3];
 			var v00 = gameGrid[0][0];
 
-			console.log(v00.intersectingCells(v12));
-			console.log(v00.intersectingCells(v33));
-			console.log(v11.intersectingCells(v33));
+			v00.skillCrossReferenceNearby(v12);
 		}
 	}
 
