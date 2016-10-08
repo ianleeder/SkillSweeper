@@ -149,14 +149,16 @@ var skillSweeper = (function() {
 	}
 
 	GridBox.prototype.drawCell = function() {
+		this.offsetDrawingContext();
+
 		// Fill square to begin with
-		
 		if(this.skillFlag)
 			ctx.fillStyle = "#F4B4B4";
 		else if (this.skillSafe)
 			ctx.fillStyle = "#B4F4B4";
 		else
 			ctx.fillStyle = CELL_COLOUR_UNREVEALED;
+
 		ctx.fillRect(0, 0, this.width, this.height);
 
 		this.drawBezel();
@@ -166,6 +168,8 @@ var skillSweeper = (function() {
 	}
 
 	GridBox.prototype.drawMine = function() {
+		this.offsetDrawingContext();
+
 		var centerX = this.width / 2;
 		var centerY = this.height / 2;
 		var radius = 5;
@@ -196,6 +200,8 @@ var skillSweeper = (function() {
 	}
 
 	GridBox.prototype.drawFlag = function () {
+		this.offsetDrawingContext();
+
 		ctx.fillStyle = "#000000";
 		ctx.beginPath();
 		ctx.moveTo(8, this.height - 6);
@@ -234,43 +240,49 @@ var skillSweeper = (function() {
 		}
 	}
 
-	GridBox.prototype.drawSquareOutline = function() {
+	GridBox.prototype.drawRevealedSquare = function() {
 		this.offsetDrawingContext();
 		ctx.fillStyle = CELL_COLOUR_REVEALED;
-		ctx.strokeStyle = 'black';
-		ctx.beginPath();
-		ctx.rect(0, 0, this.width, this.height);
-		ctx.fill();
-		ctx.lineWidth = 1;
+		ctx.fillRect(0, 0, this.width, this.height);
+		this.drawSquareOutline();
 		ctx.stroke();
 	}
 
 	GridBox.prototype.drawRevealedMine = function() {
 		this.offsetDrawingContext();
 		ctx.fillStyle = "#FF0000";
-		ctx.strokeStyle = 'black';
-		ctx.beginPath();
-		ctx.rect(0, 0, this.width, this.height);
-		ctx.fill();
-		ctx.lineWidth = 1;
-		ctx.stroke();
+		ctx.fillRect(0, 0, this.width, this.height);
+		this.drawSquareOutline();
 		this.drawMine();
 	}
 
+	GridBox.prototype.drawSquareOutline = function() {
+		this.offsetDrawingContext();
+		ctx.strokeStyle = 'black';
+		ctx.lineWidth = 1;
+		ctx.beginPath();
+		ctx.rect(0, 0, this.width, this.height);
+		ctx.stroke();
+	}
+
+	GridBox.prototype.drawNumber = function() {
+		this.offsetDrawingContext();
+		ctx.font = FIELD_FONT;
+		ctx.fillStyle = NUMBER_COLOURS[this.number];
+		ctx.fillText(this.number, 7, this.height - 7);
+	}
+
 	GridBox.prototype.draw = function() {
-		ctx.translate(this.xPos, this.yPos);
+		this.offsetDrawingContext();
 		
 		if(this.revealed) {
 			// first draw the blank cell
-			
-			this.drawSquareOutline();
+			this.drawRevealedSquare();
 
 			if (this.isMine) {
 				this.drawRevealedMine();
 			} else if(this.number > 0) {
-				ctx.font = FIELD_FONT;
-				ctx.fillStyle = NUMBER_COLOURS[this.number];
-				ctx.fillText(this.number, 7, this.height - 7);
+				this.drawNumber();
 			}
 			
 		} else {
@@ -279,8 +291,6 @@ var skillSweeper = (function() {
 			if(this.isFlagged)
 				this.drawFlag();
 		}
-
-		ctx.setTransform(1, 0, 0, 1, 0, 0);
 	}
 
 	GridBox.prototype.countAdjacentFlags = function() {
