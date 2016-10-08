@@ -420,37 +420,23 @@ var skillSweeper = (function() {
 				var myUnaccounted = this.number - this.countAdjacentFlags();
 				var theirUnaccounted = nearby.number - nearby.countAdjacentFlags();
 
-				// If I don't have any exclusive cells,
-				// and we've both looking for the same number of bombs,
-				// then all their exclusive are safe
-				if(myExclusive.length === 0 && myUnaccounted === theirUnaccounted ) {
-					console.log("Cell " + this.xIndex + "," + this.yIndex + " has 0 exclusive, and matches " + nearby.xIndex + "," + nearby.yIndex);
+				// If (mytUnaccounted - myExclusive.length) === theirUnaccounted
+				// Then all their exclusive are safe
+				if(myUnaccounted - myExclusive.length === theirUnaccounted) {
 					for(var k=0;k<theirExclusive.length;k++) {
 						theirExclusive[k].skillSafe = true;
 						theirExclusive[k].draw();
 					}
 				}
 
-				// If I don't have any exclusive cells,
-				// and theirUnaccounted = theirExclusive + myUnnaccounted
-				// then all their exclusive are bombs
-				if(myExclusive.length === 0 && theirUnaccounted === theirExclusive.length + myUnaccounted ) {
-					console.log("Cell2 " + this.xIndex + "," + this.yIndex + " has 0 exclusive, and matches " + nearby.xIndex + "," + nearby.yIndex);
+				// If myUnaccounted === theirUnaccounted - theirExclusive.length
+				// Then all their exclusives are bombs
+				if(myUnaccounted === theirUnaccounted - theirExclusive.length) {
 					for(var k=0;k<theirExclusive.length;k++) {
 						theirExclusive[k].skillFlag = true;
 						theirExclusive[k].draw();
 					}
 				}
-				
-				/*
-				console.log("Crossreferencing myself (" + this.xIndex + "," + this.yIndex + ") against (" + i + "," + j + ")");
-				console.log("Mutual:");
-				printIndices(mutual);
-				console.log("myExclusive:");
-				printIndices(myExclusive);
-				console.log("theirExclusive:");
-				printIndices(theirExclusive);
-				*/
 			}
 		}
 	}
@@ -463,11 +449,6 @@ var skillSweeper = (function() {
 			return true;
 
 		return this.number === this.countAdjacentFlags();
-	}
-
-	function printIndices(ar) {
-		for(var i=0;i<ar.length;i++)
-			console.log("  " + ar[i].xIndex + "," + ar[i].yIndex);
 	}
 
 	GridBox.prototype.getExclusiveUnrevealed = function(mutual) {
