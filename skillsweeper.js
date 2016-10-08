@@ -678,13 +678,6 @@ var skillSweeper = (function() {
 			autoPlay(true);
 		} else if(testButton.isClickInside(canvasX, canvasY)) {
 			skillCrossReference();
-		} else {
-			var v11 = gameGrid[1][1];
-			var v12 = gameGrid[1][2];
-			var v33 = gameGrid[3][3];
-			var v00 = gameGrid[0][0];
-
-			v00.skillCrossReferenceNearby(v12);
 		}
 	}
 
@@ -762,10 +755,8 @@ var skillSweeper = (function() {
 		// if there were no other moves detected
 		// because it is computationally expensive
 
-		if(!anyMovesFound) {
-			console.log("Using advanced detection");
+		if(!anyMovesFound)
 			anyMovesFound = skillCrossReference();
-		}
 
 		return anyMovesFound;
 	}
