@@ -398,6 +398,8 @@ var skillSweeper = (function() {
 		if(this.isSatisfied())
 			return false;
 
+		var anyFound = false;
+
 		// Need to look around ourself 2 squares out
 		for(var i=Math.max(this.xIndex - 2, 0); i<=Math.min(this.xIndex + 2, difficulty.x-1); i++) {
 			for(var j=Math.max(this.yIndex - 2, 0); j<=Math.min(this.yIndex + 2, difficulty.y-1); j++) {
@@ -426,6 +428,7 @@ var skillSweeper = (function() {
 					for(var k=0;k<theirExclusive.length;k++) {
 						theirExclusive[k].skillSafe = true;
 						theirExclusive[k].draw();
+						anyFound = true;
 					}
 				}
 
@@ -435,10 +438,12 @@ var skillSweeper = (function() {
 					for(var k=0;k<theirExclusive.length;k++) {
 						theirExclusive[k].skillFlag = true;
 						theirExclusive[k].draw();
+						anyFound = true;
 					}
 				}
 			}
 		}
+		return anyFound;
 	}
 
 	GridBox.prototype.isSatisfied = function() {
@@ -753,15 +758,27 @@ var skillSweeper = (function() {
 			}
 		}
 
+		// Only do the advanced detection (cross-reference)
+		// if there were no other moves detected
+		// because it is computationally expensive
+
+		if(!anyMovesFound) {
+			console.log("Using advanced detection");
+			anyMovesFound = skillCrossReference();
+		}
+
 		return anyMovesFound;
 	}
 
 	function skillCrossReference() {
+		var anyFound = false;
 		for(var i = 0; i < gameGrid.length; i++) {
 			for(var j=0; j<gameGrid[i].length; j++) {
-				gameGrid[i][j].skillCrossReferenceNearby();
+				if(gameGrid[i][j].skillCrossReferenceNearby())
+					anyFound = true;
 			}
 		}
+		return anyFound;
 	}
 
 	function handleFieldClick(e, x, y) {
