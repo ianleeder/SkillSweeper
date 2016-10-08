@@ -40,11 +40,11 @@ var skillSweeper = (function() {
 	}
 
 	Box.prototype.offsetDrawingContext = function() {
-		this.resetDrawingContext();
+		resetDrawingContext();
 		ctx.translate(this.xPos, this.yPos);
 	}
 
-	Box.prototype.resetDrawingContext = function() {
+	function resetDrawingContext() {
 		ctx.setTransform(1, 0, 0, 1, 0, 0);
 	}
 
@@ -121,8 +121,6 @@ var skillSweeper = (function() {
 		ctx.fillStyle = "#000000";
 		ctx.font = "14px Courier";
 		ctx.fillText(this.text, 7, this.height - 7);
-
-		this.resetDrawingContext();
 	}
 
 	GridBox.prototype.init = function() {
@@ -236,33 +234,41 @@ var skillSweeper = (function() {
 		}
 	}
 
+	GridBox.prototype.drawSquareOutline = function() {
+		this.offsetDrawingContext();
+		ctx.fillStyle = CELL_COLOUR_REVEALED;
+		ctx.strokeStyle = 'black';
+		ctx.beginPath();
+		ctx.rect(0, 0, this.width, this.height);
+		ctx.fill();
+		ctx.lineWidth = 1;
+		ctx.stroke();
+	}
+
+	GridBox.prototype.drawRevealedMine = function() {
+		this.offsetDrawingContext();
+		ctx.fillStyle = "#FF0000";
+		ctx.strokeStyle = 'black';
+		ctx.beginPath();
+		ctx.rect(0, 0, this.width, this.height);
+		ctx.fill();
+		ctx.lineWidth = 1;
+		ctx.stroke();
+		this.drawMine();
+	}
+
 	GridBox.prototype.draw = function() {
 		ctx.translate(this.xPos, this.yPos);
-		ctx.font = FIELD_FONT;
+		
 		if(this.revealed) {
 			// first draw the blank cell
-			ctx.fillStyle = CELL_COLOUR_REVEALED;
-			if(this.isMine)
-				ctx.fillStyle = "#FF0000";
-			ctx.strokeStyle = 'black';
-
-			ctx.beginPath();
-			ctx.rect(0, 0, this.width, this.height);
-			ctx.fill();
-			ctx.lineWidth = 1;
-			ctx.stroke();
+			
+			this.drawSquareOutline();
 
 			if (this.isMine) {
-				ctx.fillStyle = "#FF0000";
-				ctx.strokeStyle = 'black';
-
-				ctx.beginPath();
-				ctx.rect(0, 0, this.width, this.height);
-				ctx.fill();
-				ctx.lineWidth = 1;
-				ctx.stroke();
-				this.drawMine();
+				this.drawRevealedMine();
 			} else if(this.number > 0) {
+				ctx.font = FIELD_FONT;
 				ctx.fillStyle = NUMBER_COLOURS[this.number];
 				ctx.fillText(this.number, 7, this.height - 7);
 			}
@@ -799,7 +805,8 @@ var skillSweeper = (function() {
 			}		
 		}
 
-		skillDetect();
+		if(gameState === GAMESTATE_RUNNING)
+			skillDetect();
 	}
 
 	function gameWon() {
@@ -816,6 +823,7 @@ var skillSweeper = (function() {
 
 	function hitMine() {
 		gameState = GAMESTATE_DEAD;
+		drawField();
 		alert("You are dead!");
 		// sad face sun
 		// show message
