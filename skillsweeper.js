@@ -395,9 +395,12 @@ var skillSweeper = (function() {
 		if(!this.revealed || this.number === 0)
 			return false;
 
+		if(this.isSatisfied())
+			return false;
+
 		// Need to look around ourself 2 squares out
-		for(var i=Math.max(this.xIndex - 2, 0); i<=Math.min(this.xIndex + 2, difficulty.x); i++) {
-			for(var j=Math.max(this.yIndex - 2, 0); j<=Math.min(this.yIndex + 2, difficulty.y); j++) {
+		for(var i=Math.max(this.xIndex - 2, 0); i<=Math.min(this.xIndex + 2, difficulty.x-1); i++) {
+			for(var j=Math.max(this.yIndex - 2, 0); j<=Math.min(this.yIndex + 2, difficulty.y-1); j++) {
 				// don't compare to self
 				if(i === this.xIndex && j === this.yIndex)
 					continue;
@@ -407,16 +410,89 @@ var skillSweeper = (function() {
 				if(!nearby.revealed)
 					continue;
 			
-				var sharedNeighbours = this.intersectingCells(nearby);
+				var mutual = this.intersectingCells(nearby);
+				if(!mutual)
+					continue;
 
-				if(sharedNeighbours && sharedNeighbours.length > 0) {
-					console.log("Myself (" + this.xIndex + "," + this.yIndex +
-						") and my nearby neighbour (" + nearby.xIndex + "," +
-						nearby.yIndex + ") have sharedNeighbours!");
-					console.log(sharedNeighbours);
+				var myExclusive = this.getExclusiveUnrevealed(mutual);
+				var theirExclusive = nearby.getExclusiveUnrevealed(mutual);
+
+				var myUnaccounted = this.number - this.countAdjacentFlags();
+				var theirUnaccounted = nearby.number - nearby.countAdjacentFlags();
+
+				// If I don't have any exclusive cells,
+				// and we've both looking for the same number of bombs,
+				// then all their exclusive are safe
+				if(myExclusive.length === 0 && myUnaccounted === theirUnaccounted ) {
+					console.log("Cell " + this.xIndex + "," + this.yIndex + " has 0 exclusive, and matches " + nearby.xIndex + "," + nearby.yIndex);
+					for(var k=0;k<theirExclusive.length;k++) {
+						theirExclusive[k].skillSafe = true;
+						theirExclusive[k].draw();
+					}
 				}
+
+				// If I don't have any exclusive cells,
+				// and theirUnaccounted = theirExclusive + myUnnaccounted
+				// then all their exclusive are bombs
+				if(myExclusive.length === 0 && theirUnaccounted === theirExclusive.length + myUnaccounted ) {
+					console.log("Cell2 " + this.xIndex + "," + this.yIndex + " has 0 exclusive, and matches " + nearby.xIndex + "," + nearby.yIndex);
+					for(var k=0;k<theirExclusive.length;k++) {
+						theirExclusive[k].skillFlag = true;
+						theirExclusive[k].draw();
+					}
+				}
+				
+				/*
+				console.log("Crossreferencing myself (" + this.xIndex + "," + this.yIndex + ") against (" + i + "," + j + ")");
+				console.log("Mutual:");
+				printIndices(mutual);
+				console.log("myExclusive:");
+				printIndices(myExclusive);
+				console.log("theirExclusive:");
+				printIndices(theirExclusive);
+				*/
 			}
 		}
+	}
+
+	GridBox.prototype.isSatisfied = function() {
+		if(this.number === 0)
+			return true;
+
+		if(!this.revealed)
+			return true;
+
+		return this.number === this.countAdjacentFlags();
+	}
+
+	function printIndices(ar) {
+		for(var i=0;i<ar.length;i++)
+			console.log("  " + ar[i].xIndex + "," + ar[i].yIndex);
+	}
+
+	GridBox.prototype.getExclusiveUnrevealed = function(mutual) {
+		// First clone the array of neighbours
+		var exclusive = this.neighbours.slice(0);
+
+		// Find all the elements to remove
+		var toRemove = [];
+
+		for(var i=0; i<exclusive.length; i++) {
+			if(exclusive[i].revealed || exclusive[i].isFlagged) {
+				toRemove.push(i);
+				continue;
+			}
+
+			for(var j=0; j<mutual.length; j++) {
+				if(exclusive[i].equals(mutual[j]))
+					toRemove.push(i);
+			}
+		}
+
+		for (var i = toRemove.length-1; i >= 0; i--)
+   			exclusive.splice(toRemove[i],1);
+
+   		return exclusive;
 	}
 
 	GridBox.prototype.intersectingCells = function(nearby) {
@@ -447,8 +523,8 @@ var skillSweeper = (function() {
 
 		// Start at max-1, run to min+1
 
-		for(var i = Math.max(this.xIndex, nearby.xIndex)-1; i<= Math.min(this.xIndex, nearby.xIndex)+1; i++)
-			for(var j = Math.max(this.yIndex, nearby.yIndex)-1; j<= Math.min(this.yIndex, nearby.yIndex)+1; j++)
+		for(var i = Math.max(this.xIndex-1, nearby.xIndex-1, 0); i<= Math.min(this.xIndex+1, nearby.xIndex+1, difficulty.x-1); i++)
+			for(var j = Math.max(this.yIndex-1, nearby.yIndex-1, 0); j<= Math.min(this.yIndex+1, nearby.yIndex+1, difficulty.y-1); j++)
 				if(!gameGrid[i][j].revealed)
 					intersection.push(gameGrid[i][j]);
 		
@@ -485,6 +561,8 @@ var skillSweeper = (function() {
 
 	var newGameButton;
 	var autoPlayButton;
+	var testButton;
+
 	var totalFlagged;
 	var totalUnrevealed;
 
@@ -524,6 +602,7 @@ var skillSweeper = (function() {
 
 		newGameButton = new Button(2*BORDER_SIZE, 2*BORDER_SIZE, 90, 20, "New Game");
 		autoPlayButton = new Button(2*BORDER_SIZE, 2*BORDER_SIZE + 20, 90, 20, "Autoplay");
+		testButton = new Button(canvas.width - 90 - 2*BORDER_SIZE, 2*BORDER_SIZE, 90, 20, "Test");
 	}
 
 	function initialiseField() {
@@ -585,6 +664,7 @@ var skillSweeper = (function() {
 	function drawButtons() {
 		newGameButton.draw();
 		autoPlayButton.draw();
+		testButton.draw();
 	}
 
 	function mouseClickHandler(e) {
@@ -610,6 +690,8 @@ var skillSweeper = (function() {
 			newGame();
 		} else if(autoPlayButton.isClickInside(canvasX, canvasY)) {
 			autoPlay(true);
+		} else if(testButton.isClickInside(canvasX, canvasY)) {
+			skillCrossReference();
 		} else {
 			var v11 = gameGrid[1][1];
 			var v12 = gameGrid[1][2];
@@ -691,6 +773,14 @@ var skillSweeper = (function() {
 		}
 
 		return anyMovesFound;
+	}
+
+	function skillCrossReference() {
+		for(var i = 0; i < gameGrid.length; i++) {
+			for(var j=0; j<gameGrid[i].length; j++) {
+				gameGrid[i][j].skillCrossReferenceNearby();
+			}
+		}
 	}
 
 	function handleFieldClick(e, x, y) {
