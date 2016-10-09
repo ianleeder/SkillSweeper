@@ -18,6 +18,8 @@ var skillSweeper = (function() {
 	var GAMESTATE_RUNNING = 2;
 	var GAMESTATE_DEAD = 3;
 	var GAMESTATE_WON = 4;
+	var GAMESTATE_PAUSED = 5;
+	var GAMESTATE_AUTOPLAY = 6;
 
 	var NUMBER_COLOURS = [
 		"#FF7701", // Should never hit this, number 0
@@ -40,11 +42,11 @@ var skillSweeper = (function() {
 	}
 
 	Box.prototype.offsetDrawingContext = function() {
-		this.resetDrawingContext();
+		resetDrawingContext();
 		ctx.translate(this.xPos, this.yPos);
 	}
 
-	Box.prototype.resetDrawingContext = function() {
+	function resetDrawingContext() {
 		ctx.setTransform(1, 0, 0, 1, 0, 0);
 	}
 
@@ -112,6 +114,39 @@ var skillSweeper = (function() {
 	Button.prototype = Object.create(Box.prototype);
 	Button.prototype.constructor = Button;
 
+	function NumberBox(x, y, width, height) {
+		Box.call(this, x, y, width, height);
+	}
+
+	NumberBox.prototype = Object.create(Box.prototype);
+	NumberBox.prototype.constructor = NumberBox;
+
+	NumberBox.prototype.draw = function(number) {
+		// Confirm parameter is a number
+		if(isNaN(parseFloat(number)) || !isFinite(number))
+			return;
+
+		if(number > 999)
+			number = 999;
+
+		// Pad to 3 digits
+		number = number.toString();
+		while(number.length < 3) {
+			number = "0" + number;
+		}
+
+		this.offsetDrawingContext();
+
+		// Draw the background
+		ctx.fillStyle = 'black';
+		ctx.fillRect(0, 0, this.width, this.height);
+
+		// Draw the text
+		ctx.fillStyle = "#FF0000";
+		ctx.font = "bold 30px Courier New";
+		ctx.fillText(number, 5, this.height-5);
+	}
+
 	Button.prototype.draw = function() {
 		this.offsetDrawingContext();
 		ctx.fillStyle = CELL_COLOUR_UNREVEALED;
@@ -121,17 +156,20 @@ var skillSweeper = (function() {
 		ctx.fillStyle = "#000000";
 		ctx.font = "14px Courier";
 		ctx.fillText(this.text, 7, this.height - 7);
-
-		this.resetDrawingContext();
 	}
 
 	GridBox.prototype.init = function() {
 		// In the general case we want to look from one left to one right,
 		// and from one above to one below.
 		// However the easiest way to do bounds checks it to use min/max cleverly.
-		for(var i = Math.max(this.xIndex-1, 0); i<Math.min(this.xIndex+2,difficulty.x); i++)
-			for(var j = Math.max(this.yIndex-1, 0); j<Math.min(this.yIndex+2,difficulty.y); j++)
+		for(var i = Math.max(this.xIndex-1, 0); i<Math.min(this.xIndex+2,difficulty.x); i++) {
+			for(var j = Math.max(this.yIndex-1, 0); j<Math.min(this.yIndex+2,difficulty.y); j++) {
+				if(i == this.xIndex && j == this.yIndex)
+					continue;
+
 				this.neighbours.push(gameGrid[i][j]);
+			}
+		}
 
 		this.countAdjacentMines();
 	}
@@ -145,24 +183,26 @@ var skillSweeper = (function() {
 				this.number++;
 	}
 
-	GridBox.prototype.drawCell = function() {
+	GridBox.prototype.drawCellButton = function(showHint) {
+		this.offsetDrawingContext();
+
 		// Fill square to begin with
-		
-		if(this.skillFlag)
+		// Color if cell is known safe or mine
+		if(this.skillFlag && (gameState === GAMESTATE_AUTOPLAY || showHint))
 			ctx.fillStyle = "#F4B4B4";
-		else if (this.skillSafe)
+		else if (this.skillSafe && (gameState === GAMESTATE_AUTOPLAY || showHint))
 			ctx.fillStyle = "#B4F4B4";
 		else
 			ctx.fillStyle = CELL_COLOUR_UNREVEALED;
+
 		ctx.fillRect(0, 0, this.width, this.height);
 
 		this.drawBezel();
-
-		if(gameState === GAMESTATE_DEAD && this.isMine && !this.isFlagged)
-			this.drawMine();
 	}
 
 	GridBox.prototype.drawMine = function() {
+		this.offsetDrawingContext();
+
 		var centerX = this.width / 2;
 		var centerY = this.height / 2;
 		var radius = 5;
@@ -193,6 +233,8 @@ var skillSweeper = (function() {
 	}
 
 	GridBox.prototype.drawFlag = function () {
+		this.offsetDrawingContext();
+
 		ctx.fillStyle = "#000000";
 		ctx.beginPath();
 		ctx.moveTo(8, this.height - 6);
@@ -217,6 +259,7 @@ var skillSweeper = (function() {
 		ctx.closePath();
 		ctx.fill();
 
+		// If incorrectly flagged and game is over, then show a cross
 		if(gameState === GAMESTATE_DEAD && !this.isMine) {
 			ctx.strokeStyle = "#FF0000";
 			ctx.beginPath();
@@ -231,45 +274,59 @@ var skillSweeper = (function() {
 		}
 	}
 
-	GridBox.prototype.draw = function() {
-		ctx.translate(this.xPos, this.yPos);
+	GridBox.prototype.drawRevealedSquare = function() {
+		this.offsetDrawingContext();
+		ctx.fillStyle = CELL_COLOUR_REVEALED;
+		ctx.fillRect(0, 0, this.width, this.height);
+		this.drawSquareOutline();
+		ctx.stroke();
+	}
+
+	GridBox.prototype.drawRevealedMine = function() {
+		this.offsetDrawingContext();
+		ctx.fillStyle = "#FF0000";
+		ctx.fillRect(0, 0, this.width, this.height);
+		this.drawSquareOutline();
+		this.drawMine();
+	}
+
+	GridBox.prototype.drawSquareOutline = function() {
+		this.offsetDrawingContext();
+		ctx.strokeStyle = 'black';
+		ctx.lineWidth = 1;
+		ctx.beginPath();
+		ctx.rect(0, 0, this.width, this.height);
+		ctx.stroke();
+	}
+
+	GridBox.prototype.drawNumber = function() {
+		this.offsetDrawingContext();
 		ctx.font = FIELD_FONT;
+		ctx.fillStyle = NUMBER_COLOURS[this.number];
+		ctx.fillText(this.number, 7, this.height - 7);
+	}
+
+	GridBox.prototype.draw = function() {
 		if(this.revealed) {
 			// first draw the blank cell
-			ctx.fillStyle = CELL_COLOUR_REVEALED;
-			if(this.isMine)
-				ctx.fillStyle = "#FF0000";
-			ctx.strokeStyle = 'black';
-
-			ctx.beginPath();
-			ctx.rect(0, 0, this.width, this.height);
-			ctx.fill();
-			ctx.lineWidth = 1;
-			ctx.stroke();
+			this.drawRevealedSquare();
 
 			if (this.isMine) {
-				ctx.fillStyle = "#FF0000";
-				ctx.strokeStyle = 'black';
-
-				ctx.beginPath();
-				ctx.rect(0, 0, this.width, this.height);
-				ctx.fill();
-				ctx.lineWidth = 1;
-				ctx.stroke();
-				this.drawMine();
+				this.drawRevealedMine();
 			} else if(this.number > 0) {
-				ctx.fillStyle = NUMBER_COLOURS[this.number];
-				ctx.fillText(this.number, 7, this.height - 7);
+				this.drawNumber();
 			}
-			
+		}
+		// Otherwise if game is over and mine isn't flagged, show the mine
+		else if(gameState === GAMESTATE_DEAD && this.isMine && !this.isFlagged) {
+			this.drawRevealedSquare();
+			this.drawMine();
 		} else {
-			this.drawCell();
+			this.drawCellButton();
 
 			if(this.isFlagged)
 				this.drawFlag();
 		}
-
-		ctx.setTransform(1, 0, 0, 1, 0, 0);
 	}
 
 	GridBox.prototype.countAdjacentFlags = function() {
@@ -390,26 +447,155 @@ var skillSweeper = (function() {
 		if(!this.revealed || this.number === 0)
 			return false;
 
+		if(this.isSatisfied())
+			return false;
 
+		var anyFound = false;
 
-		// First let's look at our revealed neighbours
-		for(var i=0; i<this.neighbours.length; i++) {
-			var n = this.neighbours[i];
+		// Need to look around ourself 2 squares out
+		for(var i=Math.max(this.xIndex - 2, 0); i<=Math.min(this.xIndex + 2, difficulty.x-1); i++) {
+			for(var j=Math.max(this.yIndex - 2, 0); j<=Math.min(this.yIndex + 2, difficulty.y-1); j++) {
+				// don't compare to self
+				if(i === this.xIndex && j === this.yIndex)
+					continue;
 
-			if(!n.revealed)
-				continue;
-		
-			var sharedNeighbours = [];
+				var nearby = gameGrid[i][j];
 
-			for(var j=0; j<n.neighbours[j].length; j++) {
-				if(n.neighbours[j]) {
+				if(!nearby.revealed)
+					continue;
+			
+				var mutual = this.intersectingCells(nearby);
+				if(!mutual)
+					continue;
 
+				var myExclusive = this.getExclusiveUnrevealed(mutual);
+				var theirExclusive = nearby.getExclusiveUnrevealed(mutual);
+
+				var myUnaccounted = this.number - this.countAdjacentFlags();
+				var theirUnaccounted = nearby.number - nearby.countAdjacentFlags();
+
+				// If (mytUnaccounted - myExclusive.length) === theirUnaccounted
+				// Then all their exclusive are safe
+				if(myUnaccounted - myExclusive.length === theirUnaccounted) {
+					for(var k=0;k<theirExclusive.length;k++) {
+						theirExclusive[k].skillSafe = true;
+						theirExclusive[k].draw();
+						anyFound = true;
+					}
+				}
+
+				// If myUnaccounted === theirUnaccounted - theirExclusive.length
+				// Then all their exclusives are bombs
+				if(myUnaccounted === theirUnaccounted - theirExclusive.length) {
+					for(var k=0;k<theirExclusive.length;k++) {
+						theirExclusive[k].skillFlag = true;
+						theirExclusive[k].draw();
+						anyFound = true;
+					}
 				}
 			}
 		}
-
-		// We want to look at each neighbour's neighbour
+		return anyFound;
 	}
+
+	GridBox.prototype.isSatisfied = function() {
+		if(this.number === 0)
+			return true;
+
+		if(!this.revealed)
+			return true;
+
+		return this.number === this.countAdjacentFlags();
+	}
+
+	GridBox.prototype.getExclusiveUnrevealed = function(mutual) {
+		// First clone the array of neighbours
+		var exclusive = this.neighbours.slice(0);
+
+		// Find all the elements to remove
+		var toRemove = [];
+
+		for(var i=0; i<exclusive.length; i++) {
+			if(exclusive[i].revealed || exclusive[i].isFlagged) {
+				toRemove.push(i);
+				continue;
+			}
+
+			for(var j=0; j<mutual.length; j++) {
+				if(exclusive[i].equals(mutual[j]))
+					toRemove.push(i);
+			}
+		}
+
+		for (var i = toRemove.length-1; i >= 0; i--)
+   			exclusive.splice(toRemove[i],1);
+
+   		return exclusive;
+	}
+
+	GridBox.prototype.intersectingCells = function(nearby) {
+		// If the object being passed in isn't another GridBox
+		// return now (equivalent to null)
+		if(!(nearby instanceof GridBox))
+			return;
+
+		// Not interested in mutual neighbours if this cell is hidden or 0
+		if(!this.revealed || this.number === 0 ||
+			!nearby.revealed || nearby.number === 0)
+			return;
+
+		// If it's that far apart we have no mutual neighbours
+		if(Math.abs(this.xIndex - nearby.xIndex) > 2 || Math.abs(this.yIndex - nearby.yIndex) > 2)
+			return;
+
+		var intersection = [];
+
+		// Comparing x1 to x3
+		// I want 2
+
+		// Comparing x2 to x3
+		// I want 2 to 3
+
+		// Comparing x2 to x2
+		// I want 1 to 3
+
+		// Start at max-1, run to min+1
+
+		for(var i = Math.max(this.xIndex-1, nearby.xIndex-1, 0); i<= Math.min(this.xIndex+1, nearby.xIndex+1, difficulty.x-1); i++)
+			for(var j = Math.max(this.yIndex-1, nearby.yIndex-1, 0); j<= Math.min(this.yIndex+1, nearby.yIndex+1, difficulty.y-1); j++)
+				if(!gameGrid[i][j].revealed)
+					intersection.push(gameGrid[i][j]);
+		
+		return intersection;
+	}
+
+	GridBox.prototype.toggleFlag = function() {
+		// If we're removing a flag, decrement our counter
+		if(this.isFlagged)
+			totalFlagged--;
+		else
+			totalFlagged++;
+
+		remainingMinesNumberBox.draw(difficulty.mines - totalFlagged);
+
+		// Toggle flag state
+		this.isFlagged = !this.isFlagged;
+		this.draw();
+	}
+
+	GridBox.prototype.isMyNeighbour = function(nearby) {
+		// If the object being passed in isn't another GridBox
+		// return now (equivalent to null)
+		if(!(nearby instanceof GridBox))
+			return false;
+
+		for(var i=0; i<this.neighbours.length; i++)
+			if(this.neighbours[i].equals(nearby))
+				return true;
+
+		return false;
+	}
+
 
 	// VARIABLES
 	var header = new Box(0, 0, 0, 150);
@@ -427,8 +613,17 @@ var skillSweeper = (function() {
 
 	var newGameButton;
 	var autoPlayButton;
+	var hintButton;
+	var pauseButton;
+	var testButton;
+
+	var remainingMinesNumberBox;
+	var timeNumberBox;
+
 	var totalFlagged;
 	var totalUnrevealed;
+	var totalTime;
+	var clockTimer;
 
 	// Get the canvas context
 	var canvas = document.getElementById('skillSweeperCanvas');
@@ -437,19 +632,49 @@ var skillSweeper = (function() {
 	init();
 	drawField();
 
+	function hint() {
+		if(skillDetect()) {
+			// Create a list of all cells with known moves
+			var allHints = [];
+
+			for(var i=0;i<gameGrid.length;i++)
+				for(var j=0;j<gameGrid[i].length;j++)
+					if(gameGrid[i][j].skillSafe || gameGrid[i][j].skillFlag)
+						allHints.push(gameGrid[i][j]);
+
+			// Now we have a complete list of available moves, pick one randomly
+			var i = Math.floor(Math.random() * allHints.length);
+
+			// Show the cell with the hint
+			allHints[i].drawCellButton(true);
+
+			// Penalise the player
+			totalTime += 10;
+			timeNumberBox.draw(totalTime);
+		} else {
+			alert("Sorry buddy, you're down to luck now!");
+		}
+	}
+
 	function drawField() {
+		if(gameState === GAMESTATE_PAUSED) {
+			field.offsetDrawingContext();
+			ctx.fillStyle = CELL_COLOUR_UNREVEALED;
+			ctx.fillRect(0, 0, field.width, field.height);
+			ctx.font = FIELD_FONT;
+			ctx.fillStyle = "#FF0000";
+			ctx.fillText("PAUSED", (field.width/2)-30, (field.height/2)-5);
+			return;
+		}
 		for(var i=0;i<gameGrid.length;i++)
 			for(var j=0;j<gameGrid[i].length;j++)
 				gameGrid[i][j].draw();
 	}
 
 	function drawHeader() {
-		ctx.translate(header.xPos, header.yPos);
-
-		ctx.fillStyle = "#FF0000";
+		header.offsetDrawingContext();
+		ctx.fillStyle = "#2F5C11";
 		ctx.fillRect(0, 0, header.width, header.height);
-		
-		ctx.setTransform(1, 0, 0, 1, 0, 0);
 	}
 
 	function initialiseCanvas() {
@@ -466,6 +691,13 @@ var skillSweeper = (function() {
 
 		newGameButton = new Button(2*BORDER_SIZE, 2*BORDER_SIZE, 90, 20, "New Game");
 		autoPlayButton = new Button(2*BORDER_SIZE, 2*BORDER_SIZE + 20, 90, 20, "Autoplay");
+		hintButton = new Button(2*BORDER_SIZE+90, 2*BORDER_SIZE, 90, 20, "Hint");
+		pauseButton = new Button(2*BORDER_SIZE+90, 2*BORDER_SIZE + 20, 90, 20, "Pause");
+
+		testButton = new Button(canvas.width - 90 - 2*BORDER_SIZE, 2*BORDER_SIZE, 90, 20, "Test");
+
+		remainingMinesNumberBox = new NumberBox(310, 2*BORDER_SIZE + 5, 70, 30);
+		timeNumberBox = new NumberBox(390, 2*BORDER_SIZE + 5, 70, 30);
 	}
 
 	function initialiseField() {
@@ -522,11 +754,17 @@ var skillSweeper = (function() {
 		drawHeader();
 		drawField();
 		drawButtons();
+
+		remainingMinesNumberBox.draw("0");
+		timeNumberBox.draw("0");
 	}
 
 	function drawButtons() {
 		newGameButton.draw();
 		autoPlayButton.draw();
+		hintButton.draw();
+		pauseButton.draw();
+		testButton.draw();
 	}
 
 	function mouseClickHandler(e) {
@@ -552,6 +790,13 @@ var skillSweeper = (function() {
 			newGame();
 		} else if(autoPlayButton.isClickInside(canvasX, canvasY)) {
 			autoPlay(true);
+		} else if(hintButton.isClickInside(canvasX, canvasY)) {
+			hint();
+		} else if(pauseButton.isClickInside(canvasX, canvasY)) {
+			togglePauseGame();
+		} else if(testButton.isClickInside(canvasX, canvasY)) {
+			skillCrossReference();
+		} else {
 		}
 	}
 
@@ -564,6 +809,11 @@ var skillSweeper = (function() {
 	}
 
 	function autoPlay(oneMoveAtATime) {
+		gameState = GAMESTATE_AUTOPLAY;
+
+		// Redraw the field to show the skillsafe/skill flag colored squares
+		drawField();
+
 		var timeInterval = 200;
 		if(oneMoveAtATime)
 			timeInterval = 10;
@@ -571,6 +821,7 @@ var skillSweeper = (function() {
 		var autoRunInterval = setInterval(function() {
 			var v = autoMove(oneMoveAtATime);
 			if(!v) {
+				gameState = GAMESTATE_RUNNING;
 				clearInterval(autoRunInterval);
 				checkForWin();
 			}
@@ -578,24 +829,27 @@ var skillSweeper = (function() {
 	}
 
 	function autoMove(oneMoveAtATime) {
-		if(gameState != GAMESTATE_RUNNING)
+		// Stop automove if the user clicks a mine and dies
+		if(gameState != GAMESTATE_AUTOPLAY)
 			return false;
 
 		for(var i = 0; i < gameGrid.length; i++) {
 			for(var j=0; j<gameGrid[i].length; j++) {
 				if(gameGrid[i][j].skillFlag) {
-					gameGrid[i][j].isFlagged = true;
+					gameGrid[i][j].toggleFlag();
+					gameGrid[i][j].skillFlag = false;
 					gameGrid[i][j].draw();
 
 					if(oneMoveAtATime)
-						return skillDetect();
+						return true;
 				}
 
 				if(gameGrid[i][j].skillSafe) {
+					gameGrid[i][j].skillSafe = false;
 					gameGrid[i][j].reveal();
 
 					if(oneMoveAtATime)
-						return skillDetect();
+						return true;
 				}
 			}
 		}
@@ -623,7 +877,25 @@ var skillSweeper = (function() {
 			}
 		}
 
+		// Only do the advanced detection (cross-reference)
+		// if there were no other moves detected
+		// because it is computationally expensive
+
+		if(!anyMovesFound)
+			anyMovesFound = skillCrossReference();
+
 		return anyMovesFound;
+	}
+
+	function skillCrossReference() {
+		var anyFound = false;
+		for(var i = 0; i < gameGrid.length; i++) {
+			for(var j=0; j<gameGrid[i].length; j++) {
+				if(gameGrid[i][j].skillCrossReferenceNearby())
+					anyFound = true;
+			}
+		}
+		return anyFound;
 	}
 
 	function handleFieldClick(e, x, y) {
@@ -637,43 +909,61 @@ var skillSweeper = (function() {
 		} else {
 
 			// If it was a left-click reveal the cell
-			if(e.which === 1)
-			{
+			if(e.which === 1) {
 				gameGrid[x][y].reveal();
 			} else if (e.which === 3) {
-				// If we're removing a flag, decrement our counter
-				if(gameGrid[x][y].isFlagged)
-					totalFlagged--;
-				else
-					totalFlagged++;
-
-				// If it was a right-click, toggle flag state
-				gameGrid[x][y].isFlagged = !gameGrid[x][y].isFlagged;
-				gameGrid[x][y].draw();
+				gameGrid[x][y].toggleFlag();
 			}		
 		}
 
-		skillDetect();
+		if(gameState === GAMESTATE_RUNNING)
+			skillDetect();
+	}
+
+	function startClock() {
+		clockTimer = setInterval(function() {
+			totalTime++;
+			timeNumberBox.draw(totalTime);
+
+			if(totalTime >= 999)
+				stopClock();
+		}, 1000);
+	}
+
+	function stopClock() {
+		clearInterval(clockTimer);
+	}
+
+	function togglePauseGame() {
+		if(gameState === GAMESTATE_PAUSED) {
+			gameState = GAMESTATE_RUNNING;
+			startClock();
+		} else {
+			gameState = GAMESTATE_PAUSED;
+			stopClock();
+		}
+		drawField();
 	}
 
 	function gameWon() {
 		gameState = GAMESTATE_WON;
+		stopClock();
 		alert("You won!");
-		// stop clock
 		// highscore
 	}
 
 	function startGame() {
 		gameState = GAMESTATE_RUNNING;
-		// start clock
+		startClock();
 	}
 
 	function hitMine() {
 		gameState = GAMESTATE_DEAD;
+		drawField();
 		alert("You are dead!");
 		// sad face sun
 		// show message
-		// stop clock
+		stopClock();
 	}
 
 	function registerListeners() {
@@ -686,7 +976,9 @@ var skillSweeper = (function() {
 		totalUnrevealed = difficulty.x * difficulty.y;
 		initialiseField();
 		drawCanvas();
+		remainingMinesNumberBox.draw(difficulty.mines - totalFlagged);
 		gameState = GAMESTATE_NEW;
+		totalTime = 0;
 		// happy face sun
 	}
 
