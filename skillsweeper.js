@@ -19,6 +19,7 @@ var skillSweeper = (function() {
 	var GAMESTATE_DEAD = 3;
 	var GAMESTATE_WON = 4;
 	var GAMESTATE_PAUSED = 5;
+	var GAMESTATE_AUTOPLAY = 6;
 
 	var NUMBER_COLOURS = [
 		"#FF7701", // Should never hit this, number 0
@@ -171,14 +172,14 @@ var skillSweeper = (function() {
 				this.number++;
 	}
 
-	GridBox.prototype.drawCellButton = function() {
+	GridBox.prototype.drawCellButton = function(showHint) {
 		this.offsetDrawingContext();
 
 		// Fill square to begin with
 		// Color if cell is known safe or mine
-		if(this.skillFlag && gameState === GAMESTATE_RUNNING)
+		if(this.skillFlag && (gameState === GAMESTATE_AUTOPLAY || showHint))
 			ctx.fillStyle = "#F4B4B4";
-		else if (this.skillSafe && gameState === GAMESTATE_RUNNING)
+		else if (this.skillSafe && (gameState === GAMESTATE_AUTOPLAY || showHint))
 			ctx.fillStyle = "#B4F4B4";
 		else
 			ctx.fillStyle = CELL_COLOUR_UNREVEALED;
@@ -602,6 +603,31 @@ var skillSweeper = (function() {
 	init();
 	drawField();
 
+	function hint() {
+		if(skillDetect()) {
+			// Create a list of all cells with known moves
+			var allHints = [];
+
+			for(var i=0;i<gameGrid.length;i++)
+				for(var j=0;j<gameGrid[i].length;j++)
+					if(gameGrid[i][j].skillSafe || gameGrid[i][j].skillFlag)
+						allHints.push(gameGrid[i][j]);
+
+			// Now we have a complete list of available moves, pick one randomly
+			var i = Math.floor(Math.random() * allHints.length);
+
+			// Show the cell with the hint
+			allHints[i].drawCellButton(true);
+
+			// Penalise the player
+			timeNumberBox.draw("010");
+		} else {
+			alert("Sorry buddy, you're down to luck now!");
+		}
+
+
+	}
+
 	function drawField() {
 		for(var i=0;i<gameGrid.length;i++)
 			for(var j=0;j<gameGrid[i].length;j++)
@@ -609,12 +635,9 @@ var skillSweeper = (function() {
 	}
 
 	function drawHeader() {
-		ctx.translate(header.xPos, header.yPos);
-
+		header.offsetDrawingContext();
 		ctx.fillStyle = "#2F5C11";
 		ctx.fillRect(0, 0, header.width, header.height);
-		
-		ctx.setTransform(1, 0, 0, 1, 0, 0);
 	}
 
 	function initialiseCanvas() {
@@ -727,6 +750,8 @@ var skillSweeper = (function() {
 			autoPlay(true);
 		} else if(testButton.isClickInside(canvasX, canvasY)) {
 			skillCrossReference();
+		} else {
+			hint();
 		}
 	}
 
@@ -739,6 +764,11 @@ var skillSweeper = (function() {
 	}
 
 	function autoPlay(oneMoveAtATime) {
+		gameState = GAMESTATE_AUTOPLAY;
+
+		// Redraw the field to show the skillsafe/skill flag colored squares
+		drawField();
+
 		var timeInterval = 200;
 		if(oneMoveAtATime)
 			timeInterval = 10;
@@ -746,6 +776,7 @@ var skillSweeper = (function() {
 		var autoRunInterval = setInterval(function() {
 			var v = autoMove(oneMoveAtATime);
 			if(!v) {
+				gameState = GAMESTATE_RUNNING;
 				clearInterval(autoRunInterval);
 				checkForWin();
 			}
@@ -753,7 +784,8 @@ var skillSweeper = (function() {
 	}
 
 	function autoMove(oneMoveAtATime) {
-		if(gameState != GAMESTATE_RUNNING)
+		// Stop automove if the user clicks a mine and dies
+		if(gameState != GAMESTATE_AUTOPLAY)
 			return false;
 
 		for(var i = 0; i < gameGrid.length; i++) {
