@@ -122,9 +122,20 @@ var skillSweeper = (function() {
 	NumberBox.prototype.constructor = NumberBox;
 
 	NumberBox.prototype.draw = function(number) {
-		this.offsetDrawingContext();
+		// Confirm parameter is a number
+		if(isNaN(parseFloat(number)) || !isFinite(number))
+			return;
 
-		console.log("Drawing numberbox with text " + number);
+		if(number > 999)
+			number = 999;
+
+		// Pad to 3 digits
+		number = number.toString();
+		while(number.length < 3) {
+			number = "0" + number;
+		}
+
+		this.offsetDrawingContext();
 
 		// Draw the background
 		ctx.fillStyle = 'black';
@@ -558,6 +569,20 @@ var skillSweeper = (function() {
 		return intersection;
 	}
 
+	GridBox.prototype.toggleFlag = function() {
+		// If we're removing a flag, decrement our counter
+		if(this.isFlagged)
+			totalFlagged--;
+		else
+			totalFlagged++;
+
+		remainingMinesNumberBox.draw(difficulty.mines - totalFlagged);
+
+		// Toggle flag state
+		this.isFlagged = !this.isFlagged;
+		this.draw();
+	}
+
 	GridBox.prototype.isMyNeighbour = function(nearby) {
 		// If the object being passed in isn't another GridBox
 		// return now (equivalent to null)
@@ -595,6 +620,8 @@ var skillSweeper = (function() {
 
 	var totalFlagged;
 	var totalUnrevealed;
+	var totalTime;
+	var clockTimer;
 
 	// Get the canvas context
 	var canvas = document.getElementById('skillSweeperCanvas');
@@ -715,8 +742,8 @@ var skillSweeper = (function() {
 		drawField();
 		drawButtons();
 
-		remainingMinesNumberBox.draw("000");
-		timeNumberBox.draw("000");
+		remainingMinesNumberBox.draw("0");
+		timeNumberBox.draw("0");
 	}
 
 	function drawButtons() {
@@ -791,7 +818,7 @@ var skillSweeper = (function() {
 		for(var i = 0; i < gameGrid.length; i++) {
 			for(var j=0; j<gameGrid[i].length; j++) {
 				if(gameGrid[i][j].skillFlag) {
-					gameGrid[i][j].isFlagged = true;
+					gameGrid[i][j].toggleFlag();
 					gameGrid[i][j].skillFlag = false;
 					gameGrid[i][j].draw();
 
@@ -864,19 +891,10 @@ var skillSweeper = (function() {
 		} else {
 
 			// If it was a left-click reveal the cell
-			if(e.which === 1)
-			{
+			if(e.which === 1) {
 				gameGrid[x][y].reveal();
 			} else if (e.which === 3) {
-				// If we're removing a flag, decrement our counter
-				if(gameGrid[x][y].isFlagged)
-					totalFlagged--;
-				else
-					totalFlagged++;
-
-				// If it was a right-click, toggle flag state
-				gameGrid[x][y].isFlagged = !gameGrid[x][y].isFlagged;
-				gameGrid[x][y].draw();
+				gameGrid[x][y].toggleFlag();
 			}		
 		}
 
@@ -884,16 +902,34 @@ var skillSweeper = (function() {
 			skillDetect();
 	}
 
+	function startClock() {
+		clockTimer = setInterval(function() {
+			totalTime++;
+			timeNumberBox.draw(totalTime);
+
+			if(totalTime >= 999)
+				stopClock();
+		}, 1000);
+	}
+
+	function stopClock() {
+		clearInterval(clockTimer);
+	}
+
+	function clockTick() {
+
+	}
+
 	function gameWon() {
 		gameState = GAMESTATE_WON;
+		stopClock();
 		alert("You won!");
-		// stop clock
 		// highscore
 	}
 
 	function startGame() {
 		gameState = GAMESTATE_RUNNING;
-		// start clock
+		startClock();
 	}
 
 	function hitMine() {
@@ -902,7 +938,7 @@ var skillSweeper = (function() {
 		alert("You are dead!");
 		// sad face sun
 		// show message
-		// stop clock
+		stopClock();
 	}
 
 	function registerListeners() {
@@ -915,7 +951,9 @@ var skillSweeper = (function() {
 		totalUnrevealed = difficulty.x * difficulty.y;
 		initialiseField();
 		drawCanvas();
+		remainingMinesNumberBox.draw(difficulty.mines - totalFlagged);
 		gameState = GAMESTATE_NEW;
+		totalTime = 0;
 		// happy face sun
 	}
 
