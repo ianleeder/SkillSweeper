@@ -18,6 +18,7 @@ var skillSweeper = (function() {
 	var GAMESTATE_RUNNING = 2;
 	var GAMESTATE_DEAD = 3;
 	var GAMESTATE_WON = 4;
+	var GAMESTATE_PAUSED = 5;
 
 	var NUMBER_COLOURS = [
 		"#FF7701", // Should never hit this, number 0
@@ -111,6 +112,28 @@ var skillSweeper = (function() {
 
 	Button.prototype = Object.create(Box.prototype);
 	Button.prototype.constructor = Button;
+
+	function NumberBox(x, y, width, height) {
+		Box.call(this, x, y, width, height);
+	}
+
+	NumberBox.prototype = Object.create(Box.prototype);
+	NumberBox.prototype.constructor = NumberBox;
+
+	NumberBox.prototype.draw = function(number) {
+		this.offsetDrawingContext();
+
+		console.log("Drawing numberbox with text " + number);
+
+		// Draw the background
+		ctx.fillStyle = 'black';
+		ctx.fillRect(0, 0, this.width, this.height);
+
+		// Draw the text
+		ctx.fillStyle = "#FF0000";
+		ctx.font = "bold 30px Courier New";
+		ctx.fillText(number, 5, this.height-5);
+	}
 
 	Button.prototype.draw = function() {
 		this.offsetDrawingContext();
@@ -566,6 +589,9 @@ var skillSweeper = (function() {
 	var autoPlayButton;
 	var testButton;
 
+	var remainingMinesNumberBox;
+	var timeNumberBox;
+
 	var totalFlagged;
 	var totalUnrevealed;
 
@@ -585,7 +611,7 @@ var skillSweeper = (function() {
 	function drawHeader() {
 		ctx.translate(header.xPos, header.yPos);
 
-		ctx.fillStyle = "#FF0000";
+		ctx.fillStyle = "#2F5C11";
 		ctx.fillRect(0, 0, header.width, header.height);
 		
 		ctx.setTransform(1, 0, 0, 1, 0, 0);
@@ -606,6 +632,9 @@ var skillSweeper = (function() {
 		newGameButton = new Button(2*BORDER_SIZE, 2*BORDER_SIZE, 90, 20, "New Game");
 		autoPlayButton = new Button(2*BORDER_SIZE, 2*BORDER_SIZE + 20, 90, 20, "Autoplay");
 		testButton = new Button(canvas.width - 90 - 2*BORDER_SIZE, 2*BORDER_SIZE, 90, 20, "Test");
+
+		remainingMinesNumberBox = new NumberBox(110, 2*BORDER_SIZE + 5, 70, 30);
+		timeNumberBox = new NumberBox(190, 2*BORDER_SIZE + 5, 70, 30);
 	}
 
 	function initialiseField() {
@@ -662,6 +691,9 @@ var skillSweeper = (function() {
 		drawHeader();
 		drawField();
 		drawButtons();
+
+		remainingMinesNumberBox.draw("000");
+		timeNumberBox.draw("000");
 	}
 
 	function drawButtons() {
