@@ -148,13 +148,14 @@ var skillSweeper = (function() {
 				this.number++;
 	}
 
-	GridBox.prototype.drawCell = function() {
+	GridBox.prototype.drawCellButton = function() {
 		this.offsetDrawingContext();
 
 		// Fill square to begin with
-		if(this.skillFlag)
+		// Color if cell is known safe or mine
+		if(this.skillFlag && gameState === GAMESTATE_RUNNING)
 			ctx.fillStyle = "#F4B4B4";
-		else if (this.skillSafe)
+		else if (this.skillSafe && gameState === GAMESTATE_RUNNING)
 			ctx.fillStyle = "#B4F4B4";
 		else
 			ctx.fillStyle = CELL_COLOUR_UNREVEALED;
@@ -162,9 +163,6 @@ var skillSweeper = (function() {
 		ctx.fillRect(0, 0, this.width, this.height);
 
 		this.drawBezel();
-
-		if(gameState === GAMESTATE_DEAD && this.isMine && !this.isFlagged)
-			this.drawMine();
 	}
 
 	GridBox.prototype.drawMine = function() {
@@ -226,6 +224,7 @@ var skillSweeper = (function() {
 		ctx.closePath();
 		ctx.fill();
 
+		// If incorrectly flagged and game is over, then show a cross
 		if(gameState === GAMESTATE_DEAD && !this.isMine) {
 			ctx.strokeStyle = "#FF0000";
 			ctx.beginPath();
@@ -273,8 +272,6 @@ var skillSweeper = (function() {
 	}
 
 	GridBox.prototype.draw = function() {
-		this.offsetDrawingContext();
-		
 		if(this.revealed) {
 			// first draw the blank cell
 			this.drawRevealedSquare();
@@ -284,9 +281,13 @@ var skillSweeper = (function() {
 			} else if(this.number > 0) {
 				this.drawNumber();
 			}
-			
+		}
+		// Otherwise if game is over and mine isn't flagged, show the mine
+		else if(gameState === GAMESTATE_DEAD && this.isMine && !this.isFlagged) {
+			this.drawRevealedSquare();
+			this.drawMine();
 		} else {
-			this.drawCell();
+			this.drawCellButton();
 
 			if(this.isFlagged)
 				this.drawFlag();
