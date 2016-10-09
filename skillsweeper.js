@@ -972,6 +972,7 @@ var skillSweeper = (function() {
 	}
 
 	function newGame() {
+		stopClock();
 		totalFlagged = 0;
 		totalUnrevealed = difficulty.x * difficulty.y;
 		initialiseField();
