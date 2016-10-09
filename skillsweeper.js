@@ -613,6 +613,8 @@ var skillSweeper = (function() {
 
 	var newGameButton;
 	var autoPlayButton;
+	var hintButton;
+	var pauseButton;
 	var testButton;
 
 	var remainingMinesNumberBox;
@@ -647,15 +649,23 @@ var skillSweeper = (function() {
 			allHints[i].drawCellButton(true);
 
 			// Penalise the player
-			timeNumberBox.draw("010");
+			totalTime += 10;
+			timeNumberBox.draw(totalTime);
 		} else {
 			alert("Sorry buddy, you're down to luck now!");
 		}
-
-
 	}
 
 	function drawField() {
+		if(gameState === GAMESTATE_PAUSED) {
+			field.offsetDrawingContext();
+			ctx.fillStyle = CELL_COLOUR_UNREVEALED;
+			ctx.fillRect(0, 0, field.width, field.height);
+			ctx.font = FIELD_FONT;
+			ctx.fillStyle = "#FF0000";
+			ctx.fillText("PAUSED", (field.width/2)-30, (field.height/2)-5);
+			return;
+		}
 		for(var i=0;i<gameGrid.length;i++)
 			for(var j=0;j<gameGrid[i].length;j++)
 				gameGrid[i][j].draw();
@@ -681,10 +691,13 @@ var skillSweeper = (function() {
 
 		newGameButton = new Button(2*BORDER_SIZE, 2*BORDER_SIZE, 90, 20, "New Game");
 		autoPlayButton = new Button(2*BORDER_SIZE, 2*BORDER_SIZE + 20, 90, 20, "Autoplay");
+		hintButton = new Button(2*BORDER_SIZE+90, 2*BORDER_SIZE, 90, 20, "Hint");
+		pauseButton = new Button(2*BORDER_SIZE+90, 2*BORDER_SIZE + 20, 90, 20, "Pause");
+
 		testButton = new Button(canvas.width - 90 - 2*BORDER_SIZE, 2*BORDER_SIZE, 90, 20, "Test");
 
-		remainingMinesNumberBox = new NumberBox(110, 2*BORDER_SIZE + 5, 70, 30);
-		timeNumberBox = new NumberBox(190, 2*BORDER_SIZE + 5, 70, 30);
+		remainingMinesNumberBox = new NumberBox(310, 2*BORDER_SIZE + 5, 70, 30);
+		timeNumberBox = new NumberBox(390, 2*BORDER_SIZE + 5, 70, 30);
 	}
 
 	function initialiseField() {
@@ -749,6 +762,8 @@ var skillSweeper = (function() {
 	function drawButtons() {
 		newGameButton.draw();
 		autoPlayButton.draw();
+		hintButton.draw();
+		pauseButton.draw();
 		testButton.draw();
 	}
 
@@ -775,10 +790,13 @@ var skillSweeper = (function() {
 			newGame();
 		} else if(autoPlayButton.isClickInside(canvasX, canvasY)) {
 			autoPlay(true);
+		} else if(hintButton.isClickInside(canvasX, canvasY)) {
+			hint();
+		} else if(pauseButton.isClickInside(canvasX, canvasY)) {
+			togglePauseGame();
 		} else if(testButton.isClickInside(canvasX, canvasY)) {
 			skillCrossReference();
 		} else {
-			hint();
 		}
 	}
 
@@ -916,8 +934,15 @@ var skillSweeper = (function() {
 		clearInterval(clockTimer);
 	}
 
-	function clockTick() {
-
+	function togglePauseGame() {
+		if(gameState === GAMESTATE_PAUSED) {
+			gameState = GAMESTATE_RUNNING;
+			startClock();
+		} else {
+			gameState = GAMESTATE_PAUSED;
+			stopClock();
+		}
+		drawField();
 	}
 
 	function gameWon() {
